@@ -105,7 +105,7 @@ function POSPage() {
   return (
     <div className="h-screen flex bg-gray-100">
       {/* Левая часть - товары */}
-      <div className="flex-1 p-4 overflow-auto">
+      <div className="flex-1 p-6 overflow-auto">
         <h1 className="text-3xl font-bold mb-6">Касса</h1>
 
         {/* Категории */}

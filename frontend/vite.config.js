@@ -11,5 +11,13 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  build: {
+    // Service Worker должен быть в корне
+    rollupOptions: {
+      input: {
+        main: '/index.html',
+      }
+    }
   }
 })

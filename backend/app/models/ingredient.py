@@ -1,6 +1,16 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime
+from sqlalchemy import Column, Integer, String, Float, DateTime, Enum, Text
 from sqlalchemy.sql import func
+import enum
 from ..db import Base
+
+
+class UnitType(str, enum.Enum):
+    """Единицы измерения ингредиентов"""
+    KG = "кг"      # килограмм (весовой)
+    G = "г"        # грамм (весовой)
+    L = "л"        # литр (объемный)
+    ML = "мл"      # миллилитр (объемный)
+    PCS = "шт"     # штука (штучный)
 
 
 class Ingredient(Base):
@@ -8,9 +18,9 @@ class Ingredient(Base):
     Модель ингредиента (сырья)
 
     Примеры:
-    - Молоко 3.2% (единица: литр, цена: 300₸/л)
+    - Молоко 3.2% (единица: л, цена: 300₸/л)
     - Кофе арабика (единица: кг, цена: 5000₸/кг)
-    - Сахар белый (единица: кг, цена: 400₸/кг)
+    - Стакан 500мл (единица: шт, цена: 50₸/шт)
     """
     __tablename__ = "ingredients"
 
@@ -20,13 +30,17 @@ class Ingredient(Base):
     name = Column(String, nullable=False, index=True)
     category = Column(String, nullable=True)  # Категория: "Молочные", "Кофе", "Сиропы"
 
-    # Единица измерения
-    unit = Column(String, nullable=False)  # кг, л, шт, г, мл
+    # Единица измерения (фиксированный список)
+    unit = Column(Enum(UnitType), nullable=False)
+
+    # Информация об упаковке (опционально)
+    # Например: "Коробка 12 банок по 1.2кг, цена коробки 33600₸"
+    packaging_info = Column(Text, nullable=True)
 
     # Цены и остатки
     purchase_price = Column(Float, nullable=False, default=0.0)  # Закупочная цена за единицу
     stock_quantity = Column(Float, nullable=False, default=0.0)  # Текущий остаток
-    min_stock = Column(Float, nullable=False, default=0.0)  # Минимальный остаток (для предупреждений)
+    min_stock = Column(Float, nullable=False, default=0.0)  # Минимальный остаток (используется в модуле закупок)
 
     # Метаданные
     created_at = Column(DateTime(timezone=True), server_default=func.now())

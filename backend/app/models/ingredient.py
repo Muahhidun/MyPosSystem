@@ -1,16 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Enum, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text
 from sqlalchemy.sql import func
-import enum
 from ..db import Base
-
-
-class UnitType(str, enum.Enum):
-    """Единицы измерения ингредиентов"""
-    KG = "кг"      # килограмм (весовой)
-    G = "г"        # грамм (весовой)
-    L = "л"        # литр (объемный)
-    ML = "мл"      # миллилитр (объемный)
-    PCS = "шт"     # штука (штучный)
 
 
 class Ingredient(Base):
@@ -30,8 +20,8 @@ class Ingredient(Base):
     name = Column(String, nullable=False, index=True)
     category = Column(String, nullable=True)  # Категория: "Молочные", "Кофе", "Сиропы"
 
-    # Единица измерения (фиксированный список)
-    unit = Column(Enum(UnitType), nullable=False)
+    # Единица измерения (валидация через Pydantic: кг, г, л, мл, шт)
+    unit = Column(String, nullable=False)
 
     # Информация об упаковке (опционально)
     # Например: "Коробка 12 банок по 1.2кг, цена коробки 33600₸"
@@ -48,6 +38,11 @@ class Ingredient(Base):
 
     def __repr__(self):
         return f"<Ingredient {self.name} ({self.stock_quantity} {self.unit})>"
+
+    @property
+    def is_piece_unit(self):
+        """Проверка: штучный ли товар?"""
+        return self.unit == "шт"
 
     @property
     def is_low_stock(self):

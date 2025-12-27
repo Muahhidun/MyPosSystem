@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.db import engine, Base
+from sqlalchemy import text
+from app.db import engine, Base, SessionLocal
 from app.routes import products_router, orders_router, settings_router, ingredients_router
 
 # Создаем таблицы в БД
@@ -42,6 +43,32 @@ def root():
 def health_check():
     """Health check endpoint"""
     return {"status": "healthy"}
+
+
+@app.post("/api/admin/migrate-ingredients")
+def migrate_ingredients_table():
+    """
+    ВРЕМЕННЫЙ ENDPOINT для миграции таблицы ingredients
+    Удаляет и пересоздает таблицу с правильной схемой
+    """
+    try:
+        # Удаляем таблицу ingredients
+        with engine.connect() as conn:
+            conn.execute(text("DROP TABLE IF EXISTS ingredients CASCADE"))
+            conn.commit()
+
+        # Пересоздаем таблицу с правильной схемой
+        Base.metadata.create_all(bind=engine)
+
+        return {
+            "status": "success",
+            "message": "Таблица ingredients успешно пересоздана"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
 
 if __name__ == "__main__":

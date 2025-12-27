@@ -1,6 +1,20 @@
 // API клиент для взаимодействия с backend
 
-const API_BASE_URL = 'http://localhost:8000/api';
+// Автоматическое определение API URL
+// В dev режиме: если открыто с IP адреса, использует тот же IP для API
+// В prod режиме: использует относительный URL
+const getApiBaseUrl = () => {
+  // Если в браузере localhost - используем localhost для API
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:8000/api';
+  }
+
+  // Если открыто с IP адреса (например 192.168.3.102) - используем тот же IP
+  // Это для доступа с телефона/планшета в локальной сети
+  return `http://${window.location.hostname}:8000/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 class ApiClient {
   async request(endpoint, options = {}) {
@@ -90,6 +104,18 @@ class ApiClient {
 
   async getOrder(id) {
     return this.request(`/orders/${id}`);
+  }
+
+  // Settings
+  async getSettings() {
+    return this.request('/settings');
+  }
+
+  async updateSettings(data) {
+    return this.request('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 }
 

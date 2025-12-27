@@ -1,5 +1,6 @@
 from .product import ProductCreate, ProductUpdate, ProductResponse
 from .order import OrderCreate, OrderResponse, OrderItemResponse, OrderStats
+from .settings import SettingsUpdate, SettingsResponse
 
 __all__ = [
     "ProductCreate",
@@ -8,5 +9,7 @@ __all__ = [
     "OrderCreate",
     "OrderResponse",
     "OrderItemResponse",
-    "OrderStats"
+    "OrderStats",
+    "SettingsUpdate",
+    "SettingsResponse"
 ]

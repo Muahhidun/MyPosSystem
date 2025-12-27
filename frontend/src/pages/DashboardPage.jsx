@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
+import ReceiptPrinter from '../utils/receiptPrinter';
+import LabelPrinter from '../utils/labelPrinter';
 
 function DashboardPage() {
   const [orders, setOrders] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [settings, setSettings] = useState(null);
+  const [printing, setPrinting] = useState({});
 
   useEffect(() => {
     loadData();
+    loadSettings();
 
     // Автообновление каждые 5 секунд
     const interval = autoRefresh ? setInterval(loadData, 5000) : null;
@@ -33,12 +38,59 @@ function DashboardPage() {
     }
   };
 
+  const loadSettings = async () => {
+    try {
+      const data = await api.getSettings();
+      setSettings(data);
+    } catch (error) {
+      console.error('Ошибка загрузки настроек:', error);
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString('ru-RU', {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const handleReprint = async (order, type) => {
+    if (!settings) {
+      alert('Настройки не загружены');
+      return;
+    }
+
+    const printKey = `${order.id}-${type}`;
+    setPrinting(prev => ({ ...prev, [printKey]: true }));
+
+    try {
+      if (type === 'receipt') {
+        if (!settings.receipt_printer_ip) {
+          alert('IP адрес принтера чеков не настроен');
+          return;
+        }
+        const printer = new ReceiptPrinter(settings.receipt_printer_ip);
+        await printer.printReceipt(order, {
+          businessName: settings.business_name,
+          phone: settings.phone
+        });
+        alert('Чек отправлен на печать!');
+      } else if (type === 'label') {
+        if (!settings.label_printer_ip) {
+          alert('IP адрес принтера бегунков не настроен');
+          return;
+        }
+        const printer = new LabelPrinter(settings.label_printer_ip);
+        await printer.printKitchenLabel(order);
+        alert('Бегунок отправлен на печать!');
+      }
+    } catch (error) {
+      console.error('Ошибка печати:', error);
+      alert('Ошибка печати: ' + error.message);
+    } finally {
+      setPrinting(prev => ({ ...prev, [printKey]: false }));
+    }
   };
 
   if (loading) {
@@ -175,13 +227,42 @@ function DashboardPage() {
                     </span>
                   </div>
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-600 mb-3">
                   {order.items.map((item, idx) => (
                     <div key={idx} className="text-xs">
                       • {item.product_name} x{item.quantity}
                     </div>
                   ))}
                 </div>
+                {/* Кнопки печати */}
+                {settings && (settings.receipt_printer_ip || settings.label_printer_ip) && (
+                  <div className="flex gap-2 mt-2">
+                    {settings.receipt_printer_ip && (
+                      <button
+                        onClick={() => handleReprint(order, 'receipt')}
+                        disabled={printing[`${order.id}-receipt`]}
+                        className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        {printing[`${order.id}-receipt`] ? 'Печать...' : 'Чек'}
+                      </button>
+                    )}
+                    {settings.label_printer_ip && (
+                      <button
+                        onClick={() => handleReprint(order, 'label')}
+                        disabled={printing[`${order.id}-label`]}
+                        className="flex-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        {printing[`${order.id}-label`] ? 'Печать...' : 'Бегунок'}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

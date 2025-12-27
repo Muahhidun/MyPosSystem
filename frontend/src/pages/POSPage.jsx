@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
+import ReceiptPrinter from '../utils/receiptPrinter';
+import LabelPrinter from '../utils/labelPrinter';
 
 function POSPage() {
   const [products, setProducts] = useState([]);
@@ -7,11 +9,22 @@ function POSPage() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [categories, setCategories] = useState([]);
+  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     loadProducts();
     loadCategories();
+    loadSettings();
   }, []);
+
+  const loadSettings = async () => {
+    try {
+      const data = await api.getSettings();
+      setSettings(data);
+    } catch (error) {
+      console.error('Ошибка загрузки настроек:', error);
+    }
+  };
 
   const loadProducts = async () => {
     try {
@@ -82,6 +95,35 @@ function POSPage() {
       };
 
       const order = await api.createOrder(orderData);
+
+      // Автоматическая печать чека и бегунка
+      if (settings) {
+        // Печать чека для клиента
+        if (settings.receipt_printer_ip) {
+          try {
+            const receiptPrinter = new ReceiptPrinter(settings.receipt_printer_ip);
+            await receiptPrinter.printReceipt(order, {
+              businessName: settings.business_name,
+              phone: settings.phone
+            });
+            console.log('Чек отправлен на печать');
+          } catch (error) {
+            console.error('Ошибка печати чека:', error);
+          }
+        }
+
+        // Печать бегунка для кухни
+        if (settings.label_printer_ip) {
+          try {
+            const labelPrinter = new LabelPrinter(settings.label_printer_ip);
+            await labelPrinter.printKitchenLabel(order);
+            console.log('Бегунок отправлен на печать');
+          } catch (error) {
+            console.error('Ошибка печати бегунка:', error);
+          }
+        }
+      }
+
       alert(`Заказ #${order.order_number} создан! Сумма: ${order.total_amount}₸`);
       setCart([]);
     } catch (error) {

@@ -12,6 +12,15 @@ export default defineConfig({
       }
     }
   },
+  preview: {
+    port: 4173,
+    host: true,
+    allowedHosts: [
+      '.railway.app',
+      '.up.railway.app',
+      'localhost',
+    ]
+  },
   build: {
     // Service Worker должен быть в корне
     rollupOptions: {

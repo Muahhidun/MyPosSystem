@@ -1,16 +1,20 @@
 // API клиент для взаимодействия с backend
 
 // Автоматическое определение API URL
+// В prod режиме: использует переменную окружения VITE_API_URL
 // В dev режиме: если открыто с IP адреса, использует тот же IP для API
-// В prod режиме: использует относительный URL
 const getApiBaseUrl = () => {
-  // Если в браузере localhost - используем localhost для API
+  // Production: используем переменную окружения
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+
+  // Development: localhost
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:8000/api';
   }
 
-  // Если открыто с IP адреса (например 192.168.3.102) - используем тот же IP
-  // Это для доступа с телефона/планшета в локальной сети
+  // Development: IP адрес (для доступа с телефона/планшета в локальной сети)
   return `http://${window.location.hostname}:8000/api`;
 };
 

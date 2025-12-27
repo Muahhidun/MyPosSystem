@@ -18,6 +18,8 @@ function IngredientsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState(null);
   const [filterCategory, setFilterCategory] = useState('');
+  const [filterUnit, setFilterUnit] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -30,16 +32,13 @@ function IngredientsPage() {
   useEffect(() => {
     loadIngredients();
     loadCategories();
-  }, [filterCategory]);
+  }, []);
 
   const loadIngredients = async () => {
     try {
       setLoading(true);
       setError(null);
-      const params = {};
-      if (filterCategory) params.category = filterCategory;
-
-      const data = await api.getIngredients(params);
+      const data = await api.getIngredients();
       setIngredients(data);
     } catch (error) {
       console.error('Ошибка загрузки ингредиентов:', error);
@@ -49,6 +48,26 @@ function IngredientsPage() {
       setLoading(false);
     }
   };
+
+  // Клиентская фильтрация и поиск
+  const filteredIngredients = ingredients.filter(ingredient => {
+    // Фильтр по поиску
+    if (searchQuery && !ingredient.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+
+    // Фильтр по категории
+    if (filterCategory && ingredient.category !== filterCategory) {
+      return false;
+    }
+
+    // Фильтр по единице измерения
+    if (filterUnit && ingredient.unit !== filterUnit) {
+      return false;
+    }
+
+    return true;
+  });
 
   const loadCategories = async () => {
     try {
@@ -176,23 +195,64 @@ function IngredientsPage() {
         </div>
       )}
 
-      {/* Фильтры */}
+      {/* Поиск и фильтры */}
       <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Категория
-          </label>
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">Все категории</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
+        <div className="grid grid-cols-3 gap-4">
+          {/* Быстрый поиск */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Быстрый поиск
+            </label>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Поиск по названию..."
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          {/* Фильтр по категории */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Категория
+            </label>
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Все категории</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Фильтр по единице измерения */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Единица измерения
+            </label>
+            <select
+              value={filterUnit}
+              onChange={(e) => setFilterUnit(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Все единицы</option>
+              {UNITS.map(unit => (
+                <option key={unit.value} value={unit.value}>{unit.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        {/* Показать количество найденных */}
+        {(searchQuery || filterCategory || filterUnit) && (
+          <div className="mt-3 text-sm text-gray-600">
+            Найдено: {filteredIngredients.length} из {ingredients.length}
+          </div>
+        )}
       </div>
 
       {/* Форма создания/редактирования */}
@@ -343,7 +403,7 @@ function IngredientsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {ingredients.map(ingredient => (
+            {filteredIngredients.map(ingredient => (
               <tr key={ingredient.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   #{ingredient.id}
@@ -389,6 +449,16 @@ function IngredientsPage() {
             ))}
           </tbody>
         </table>
+
+        {filteredIngredients.length === 0 && ingredients.length > 0 && (
+          <div className="text-center py-16 text-gray-500">
+            <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <p className="text-lg font-medium">Ничего не найдено</p>
+            <p className="text-sm mt-2">Попробуйте изменить параметры поиска</p>
+          </div>
+        )}
 
         {ingredients.length === 0 && (
           <div className="text-center py-16 text-gray-500">

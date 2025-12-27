@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db import engine, Base
-from app.routes import products_router, orders_router, settings_router
+from app.routes import products_router, orders_router, settings_router, ingredients_router
 
 # Создаем таблицы в БД
 Base.metadata.create_all(bind=engine)
@@ -25,6 +25,7 @@ app.add_middleware(
 app.include_router(products_router, prefix="/api")
 app.include_router(orders_router, prefix="/api")
 app.include_router(settings_router, prefix="/api")
+app.include_router(ingredients_router, prefix="/api")
 
 
 @app.get("/")

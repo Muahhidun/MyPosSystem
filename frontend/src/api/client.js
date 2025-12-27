@@ -121,6 +121,47 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  // Ingredients
+  async getIngredients(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/ingredients${query ? `?${query}` : ''}`);
+  }
+
+  async getIngredient(id) {
+    return this.request(`/ingredients/${id}`);
+  }
+
+  async createIngredient(data) {
+    return this.request('/ingredients', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateIngredient(id, data) {
+    return this.request(`/ingredients/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateIngredientStock(id, data) {
+    return this.request(`/ingredients/${id}/stock`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteIngredient(id) {
+    return this.request(`/ingredients/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getIngredientCategories() {
+    return this.request('/ingredients/categories/list');
+  }
 }
 
 export default new ApiClient();

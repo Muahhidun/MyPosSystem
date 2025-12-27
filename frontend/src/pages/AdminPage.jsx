@@ -1,5 +1,6 @@
 import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import ProductsPage from './admin/ProductsPage';
+import IngredientsPage from './admin/IngredientsPage';
 import SettingsPage from './admin/SettingsPage';
 
 function AdminPage() {
@@ -7,7 +8,7 @@ function AdminPage() {
 
   const navigation = [
     { name: 'Товары', path: '/admin', icon: '📦' },
-    { name: 'Ингредиенты', path: '/admin/ingredients', icon: '🥕', soon: true },
+    { name: 'Ингредиенты', path: '/admin/ingredients', icon: '🥕' },
     { name: 'Техкарты', path: '/admin/recipes', icon: '📋', soon: true },
     { name: 'Категории', path: '/admin/categories', icon: '🏷️', soon: true },
     { name: 'Настройки', path: '/admin/settings', icon: '⚙️' },
@@ -95,7 +96,7 @@ function AdminPage() {
         <main className="flex-1 p-8">
           <Routes>
             <Route index element={<ProductsPage />} />
-            <Route path="ingredients" element={<ComingSoon title="Ингредиенты" />} />
+            <Route path="ingredients" element={<IngredientsPage />} />
             <Route path="recipes" element={<ComingSoon title="Техкарты" />} />
             <Route path="categories" element={<ComingSoon title="Категории" />} />
             <Route path="settings" element={<SettingsPage />} />

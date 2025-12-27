@@ -66,8 +66,8 @@ class ReceiptPrinter extends ESCPOSPrinter {
       );
 
       // Количество и цена
-      const qtyLine = `${item.quantity} x ${item.price}₸`;
-      const subtotal = `${item.subtotal.toFixed(0)}₸`;
+      const qtyLine = `${item.quantity} x ${item.price} тг`;
+      const subtotal = `${item.subtotal.toFixed(0)} тг`;
 
       // Выравниваем: количество слева, сумма справа
       const spacer = ' '.repeat(48 - qtyLine.length - subtotal.length);
@@ -80,7 +80,7 @@ class ReceiptPrinter extends ESCPOSPrinter {
 
     // Итого
     const totalLabel = 'ИТОГО:';
-    const totalAmount = `${order.total_amount.toFixed(0)}₸`;
+    const totalAmount = `${order.total_amount.toFixed(0)} тг`;
     const totalSpacer = ' '.repeat(
       48 - totalLabel.length - totalAmount.length
     );
@@ -114,6 +114,8 @@ class ReceiptPrinter extends ESCPOSPrinter {
       commands.push(...this.printText(settings.phone, { align: 'center' }));
     }
 
+    commands.push(...this.printEmptyLine());
+    commands.push(...this.printEmptyLine());
     commands.push(...this.printEmptyLine());
     commands.push(...this.printEmptyLine());
 

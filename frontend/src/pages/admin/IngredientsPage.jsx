@@ -14,6 +14,7 @@ function IngredientsPage() {
   const [ingredients, setIngredients] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState(null);
   const [filterCategory, setFilterCategory] = useState('');
@@ -34,6 +35,7 @@ function IngredientsPage() {
   const loadIngredients = async () => {
     try {
       setLoading(true);
+      setError(null);
       const params = {};
       if (filterCategory) params.category = filterCategory;
 
@@ -41,7 +43,8 @@ function IngredientsPage() {
       setIngredients(data);
     } catch (error) {
       console.error('Ошибка загрузки ингредиентов:', error);
-      alert('Не удалось загрузить ингредиенты');
+      setError('Не удалось загрузить ингредиенты. Попробуйте обновить страницу.');
+      setIngredients([]);
     } finally {
       setLoading(false);
     }
@@ -58,9 +61,10 @@ function IngredientsPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
 
     if (!formData.name || !formData.unit || !formData.purchase_price) {
-      alert('Заполните обязательные поля: название, единицу измерения и цену');
+      setError('Заполните обязательные поля: название, единицу измерения и цену');
       return;
     }
 
@@ -75,10 +79,8 @@ function IngredientsPage() {
 
       if (editingIngredient) {
         await api.updateIngredient(editingIngredient.id, data);
-        alert('Ингредиент обновлен');
       } else {
         await api.createIngredient(data);
-        alert('Ингредиент создан');
       }
 
       setFormData({ name: '', category: '', unit: 'кг', purchase_price: '', packaging_info: '' });
@@ -88,7 +90,7 @@ function IngredientsPage() {
       loadCategories();
     } catch (error) {
       console.error('Ошибка сохранения ингредиента:', error);
-      alert('Не удалось сохранить ингредиент: ' + (error.message || ''));
+      setError('Не удалось сохранить ингредиент: ' + (error.message || 'Неизвестная ошибка'));
     }
   };
 
@@ -109,14 +111,14 @@ function IngredientsPage() {
       return;
     }
 
+    setError(null);
     try {
       await api.deleteIngredient(id);
-      alert('Ингредиент удален');
       loadIngredients();
       loadCategories();
     } catch (error) {
       console.error('Ошибка удаления ингредиента:', error);
-      alert('Не удалось удалить ингредиент');
+      setError('Не удалось удалить ингредиент');
     }
   };
 
@@ -146,6 +148,33 @@ function IngredientsPage() {
           {showForm ? 'Отмена' : '+ Добавить ингредиент'}
         </button>
       </div>
+
+      {/* Отображение ошибок */}
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+            <div className="ml-auto pl-3">
+              <button
+                onClick={() => setError(null)}
+                className="inline-flex text-red-400 hover:text-red-600"
+              >
+                <span className="sr-only">Закрыть</span>
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Фильтры */}
       <div className="bg-white p-4 rounded-lg shadow-md mb-6">

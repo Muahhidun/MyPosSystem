@@ -52,13 +52,13 @@ def migrate_ingredients_table():
     Удаляет и пересоздает таблицу с правильной схемой
     """
     try:
-        # Удаляем таблицу ingredients
-        with engine.connect() as conn:
-            conn.execute(text("DROP TABLE IF EXISTS ingredients CASCADE"))
-            conn.commit()
+        from app.models import Ingredient
+
+        # Удаляем таблицу через metadata (работает для SQLite и PostgreSQL)
+        Ingredient.__table__.drop(engine, checkfirst=True)
 
         # Пересоздаем таблицу с правильной схемой
-        Base.metadata.create_all(bind=engine)
+        Ingredient.__table__.create(engine, checkfirst=True)
 
         return {
             "status": "success",

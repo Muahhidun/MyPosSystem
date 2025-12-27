@@ -18,13 +18,13 @@ def get_or_create_settings(db: Session) -> Settings:
     return settings
 
 
-@router.get("/", response_model=SettingsResponse)
+@router.get("", response_model=SettingsResponse)
 def get_settings(db: Session = Depends(get_db)):
     """Получить настройки системы"""
     return get_or_create_settings(db)
 
 
-@router.put("/", response_model=SettingsResponse)
+@router.put("", response_model=SettingsResponse)
 def update_settings(
     settings_update: SettingsUpdate,
     db: Session = Depends(get_db)

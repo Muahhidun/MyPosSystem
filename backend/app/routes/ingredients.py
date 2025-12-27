@@ -13,7 +13,7 @@ from ..schemas import (
 router = APIRouter(prefix="/ingredients", tags=["ingredients"])
 
 
-@router.get("/", response_model=List[IngredientResponse])
+@router.get("", response_model=List[IngredientResponse])
 def get_ingredients(
     skip: int = 0,
     limit: int = 100,
@@ -56,7 +56,7 @@ def get_ingredient(ingredient_id: int, db: Session = Depends(get_db)):
     return ingredient
 
 
-@router.post("/", response_model=IngredientResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=IngredientResponse, status_code=status.HTTP_201_CREATED)
 def create_ingredient(ingredient_data: IngredientCreate, db: Session = Depends(get_db)):
     """Создать новый ингредиент"""
     # Проверяем что такого ингредиента еще нет

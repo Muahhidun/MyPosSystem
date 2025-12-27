@@ -18,7 +18,7 @@ def generate_order_number() -> str:
     return f"ORD-{timestamp}-{random_part}"
 
 
-@router.post("/", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
 def create_order(order_data: OrderCreate, db: Session = Depends(get_db)):
     """Создать новый заказ"""
     # Проверяем наличие товаров и считаем сумму
@@ -74,7 +74,7 @@ def create_order(order_data: OrderCreate, db: Session = Depends(get_db)):
     return db_order
 
 
-@router.get("/", response_model=List[OrderResponse])
+@router.get("", response_model=List[OrderResponse])
 def get_orders(
     skip: int = 0,
     limit: int = 100,

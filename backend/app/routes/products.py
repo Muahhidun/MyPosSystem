@@ -8,7 +8,7 @@ from ..schemas import ProductCreate, ProductUpdate, ProductResponse
 router = APIRouter(prefix="/products", tags=["products"])
 
 
-@router.get("/", response_model=List[ProductResponse])
+@router.get("", response_model=List[ProductResponse])
 def get_products(
     skip: int = 0,
     limit: int = 100,
@@ -41,7 +41,7 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     return product
 
 
-@router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     """Создать новый товар"""
     db_product = Product(**product.model_dump())

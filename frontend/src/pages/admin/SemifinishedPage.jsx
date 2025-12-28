@@ -58,20 +58,31 @@ function SemifinishedPage() {
     }
   };
 
+  const calculateTotalWeight = () => {
+    return formData.ingredients.reduce((sum, ing) => {
+      return sum + (parseFloat(ing.weight) || 0);
+    }, 0);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.output_quantity || formData.ingredients.length === 0) {
-      toast.error('Заполните название, выход и добавьте хотя бы один ингредиент');
+    if (!formData.name || formData.ingredients.length === 0) {
+      toast.error('Заполните название и добавьте хотя бы один ингредиент');
       return;
     }
 
     try {
+      // Если выход не указан, используем сумму весов ингредиентов
+      const outputQty = formData.output_quantity
+        ? parseFloat(formData.output_quantity)
+        : calculateTotalWeight();
+
       const data = {
         name: formData.name,
         category: formData.category || null,
         unit: formData.unit,
-        output_quantity: parseFloat(formData.output_quantity),
+        output_quantity: outputQty,
         ingredients: formData.ingredients.map(ing => ({
           ingredient_id: ing.ingredient_id,
           weight: parseFloat(ing.weight)
@@ -106,7 +117,8 @@ function SemifinishedPage() {
         category: fullItem.category || '',
         unit: fullItem.unit || 'гр',
         output_quantity: fullItem.output_quantity,
-        ingredients: fullItem.ingredients.map(ing => ({
+        ingredients: fullItem.ingredients.map((ing, idx) => ({
+          id: Date.now() + idx,
           ingredient_id: ing.ingredient_id,
           weight: ing.weight
         }))
@@ -135,7 +147,10 @@ function SemifinishedPage() {
   const addIngredient = () => {
     setFormData({
       ...formData,
-      ingredients: [...formData.ingredients, { ingredient_id: null, weight: '' }]
+      ingredients: [
+        ...formData.ingredients,
+        { id: Date.now(), ingredient_id: null, weight: '' }
+      ]
     });
   };
 
@@ -386,7 +401,10 @@ function SemifinishedPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Выход (количество) *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Выход (количество)
+                  <span className="text-xs text-slate-500 ml-2">опционально</span>
+                </label>
                 <div className="relative">
                   <input
                     type="number"
@@ -394,8 +412,7 @@ function SemifinishedPage() {
                     value={formData.output_quantity}
                     onChange={(e) => setFormData({ ...formData, output_quantity: e.target.value })}
                     className="w-full px-4 py-2.5 pr-16 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all"
-                    placeholder="1000"
-                    required
+                    placeholder={`${calculateTotalWeight()} (сумма весов)`}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">{formData.unit}</span>
                 </div>
@@ -437,7 +454,7 @@ function SemifinishedPage() {
                 <div className="space-y-3">
                   {formData.ingredients.map((ing, index) => (
                     <IngredientRow
-                      key={index}
+                      key={ing.id || index}
                       index={index}
                       ingredient={ing}
                       ingredients={ingredients}

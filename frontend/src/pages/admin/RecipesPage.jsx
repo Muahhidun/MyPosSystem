@@ -86,22 +86,26 @@ function RecipesPage() {
       const data = {
         name: formData.name,
         category: formData.category || null,
-        output_weight: calculateOutputWeight(),
+        output_weight: Math.round(calculateOutputWeight()),
         price: parseFloat(formData.price),
         is_weight_based: formData.is_weight_based,
         exclude_from_discounts: formData.exclude_from_discounts,
         show_in_pos: formData.show_in_pos,
-        ingredients: formData.ingredients.map(ing => ({
-          ingredient_id: ing.ingredient_id,
-          gross_weight: parseFloat(ing.weight),  // В граммах
-          net_weight: parseFloat(ing.weight),    // В граммах (брутто = нетто)
-          cooking_method: ing.cooking_method || null,
-          is_cleaned: false
-        })),
-        semifinished: formData.semifinished.map(sf => ({
-          semifinished_id: sf.semifinished_id,
-          quantity: parseFloat(sf.quantity)  // В граммах/мл
-        }))
+        ingredients: formData.ingredients
+          .filter(ing => ing.ingredient_id && ing.weight)
+          .map(ing => ({
+            ingredient_id: ing.ingredient_id,
+            gross_weight: parseFloat(ing.weight) || 0,  // В граммах
+            net_weight: parseFloat(ing.weight) || 0,    // В граммах (брутто = нетто)
+            cooking_method: (ing.cooking_method && ing.cooking_method.trim()) ? ing.cooking_method.trim() : null,
+            is_cleaned: false
+          })),
+        semifinished: formData.semifinished
+          .filter(sf => sf.semifinished_id && sf.quantity)
+          .map(sf => ({
+            semifinished_id: sf.semifinished_id,
+            quantity: parseFloat(sf.quantity) || 0  // В граммах/мл
+          }))
       };
 
       if (editingRecipe) {
@@ -619,8 +623,9 @@ function RecipesPage() {
       </div>
 
       {/* Список техкарт */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <table className="min-w-full">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-visible">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
               <th className="px-6 py-3 text-left w-16">ID</th>
@@ -673,7 +678,7 @@ function RecipesPage() {
                     <MoreHorizontal size={18} />
                   </button>
                   {showActionsMenu === recipe.id && (
-                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10">
+                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
                       <button
                         onClick={() => {
                           handleEdit(recipe);
@@ -699,6 +704,7 @@ function RecipesPage() {
             ))}
           </tbody>
         </table>
+        </div>
 
         {filteredRecipes.length === 0 && recipes.length > 0 && (
           <div className="text-center py-16 text-slate-500">

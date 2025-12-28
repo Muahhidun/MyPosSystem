@@ -344,8 +344,9 @@ function ProductsPage() {
       </div>
 
       {/* Список товаров */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <table className="min-w-full">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-visible">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
               <th className="px-6 py-3 text-left w-16">ID</th>
@@ -397,7 +398,7 @@ function ProductsPage() {
                     <MoreHorizontal size={18} />
                   </button>
                   {showActionsMenu === product.id && (
-                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10">
+                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
                       <button
                         onClick={() => {
                           handleEdit(product);
@@ -423,6 +424,7 @@ function ProductsPage() {
             ))}
           </tbody>
         </table>
+        </div>
 
         {filteredProducts.length === 0 && products.length > 0 && (
           <div className="text-center py-16 text-slate-500">

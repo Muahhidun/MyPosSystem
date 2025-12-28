@@ -361,8 +361,9 @@ function SemifinishedPage() {
           </div>
 
           {/* Таблица */}
-          <div className="bg-white border border-slate-200 rounded-b-xl overflow-hidden shadow-sm">
-            <table className="w-full text-left border-collapse">
+          <div className="bg-white border border-slate-200 rounded-b-xl overflow-visible shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
                   <th className="px-6 py-3 w-16">ID</th>
@@ -409,7 +410,7 @@ function SemifinishedPage() {
                           <MoreHorizontal size={18} />
                         </button>
                         {showActionsMenu === item.id && (
-                          <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10">
+                          <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
                             <button
                               onClick={() => handleEdit(item)}
                               className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-2"
@@ -432,6 +433,7 @@ function SemifinishedPage() {
                 })}
               </tbody>
             </table>
+            </div>
 
             {filteredSemifinished.length === 0 && (
               <div className="text-center py-16 text-slate-500">

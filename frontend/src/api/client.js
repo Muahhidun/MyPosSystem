@@ -162,6 +162,40 @@ class ApiClient {
   async getIngredientCategories() {
     return this.request('/ingredients/categories/list');
   }
+
+  // Recipes
+  async getRecipes(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/recipes${query ? `?${query}` : ''}`);
+  }
+
+  async getRecipe(id) {
+    return this.request(`/recipes/${id}`);
+  }
+
+  async createRecipe(data) {
+    return this.request('/recipes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateRecipe(id, data) {
+    return this.request(`/recipes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteRecipe(id) {
+    return this.request(`/recipes/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getRecipeCategories() {
+    return this.request('/recipes/categories/list');
+  }
 }
 
 export default new ApiClient();

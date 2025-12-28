@@ -1,6 +1,7 @@
 import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import ProductsPage from './admin/ProductsPage';
 import IngredientsPage from './admin/IngredientsPage';
+import RecipesPage from './admin/RecipesPage';
 import SettingsPage from './admin/SettingsPage';
 
 function AdminPage() {
@@ -9,7 +10,7 @@ function AdminPage() {
   const navigation = [
     { name: 'Товары', path: '/admin', icon: '📦' },
     { name: 'Ингредиенты', path: '/admin/ingredients', icon: '🥕' },
-    { name: 'Техкарты', path: '/admin/recipes', icon: '📋', soon: true },
+    { name: 'Техкарты', path: '/admin/recipes', icon: '📋' },
     { name: 'Категории', path: '/admin/categories', icon: '🏷️', soon: true },
     { name: 'Настройки', path: '/admin/settings', icon: '⚙️' },
   ];
@@ -97,7 +98,7 @@ function AdminPage() {
           <Routes>
             <Route index element={<ProductsPage />} />
             <Route path="ingredients" element={<IngredientsPage />} />
-            <Route path="recipes" element={<ComingSoon title="Техкарты" />} />
+            <Route path="recipes" element={<RecipesPage />} />
             <Route path="categories" element={<ComingSoon title="Категории" />} />
             <Route path="settings" element={<SettingsPage />} />
           </Routes>

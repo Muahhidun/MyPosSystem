@@ -9,6 +9,7 @@ class ProductBase(BaseModel):
     price: float = Field(..., gt=0)
     category: Optional[str] = None
     is_available: bool = True
+    show_in_pos: bool = True  # Показывать на кассе
     image_url: Optional[str] = None
 
 
@@ -23,6 +24,7 @@ class ProductUpdate(BaseModel):
     price: Optional[float] = Field(None, gt=0)
     category: Optional[str] = None
     is_available: Optional[bool] = None
+    show_in_pos: Optional[bool] = None
     image_url: Optional[str] = None
 
 

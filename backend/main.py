@@ -2,7 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.db import engine, Base, SessionLocal
-from app.routes import products_router, orders_router, settings_router, ingredients_router, recipes_router
+from app.routes import (
+    products_router,
+    orders_router,
+    settings_router,
+    ingredients_router,
+    recipes_router,
+    semifinished_router,
+    pos_router
+)
 
 # Создаем таблицы в БД
 Base.metadata.create_all(bind=engine)
@@ -28,6 +36,8 @@ app.include_router(orders_router, prefix="/api")
 app.include_router(settings_router, prefix="/api")
 app.include_router(ingredients_router, prefix="/api")
 app.include_router(recipes_router, prefix="/api")
+app.include_router(semifinished_router, prefix="/api")
+app.include_router(pos_router, prefix="/api")
 
 
 @app.get("/")

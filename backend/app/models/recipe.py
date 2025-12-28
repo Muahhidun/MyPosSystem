@@ -26,12 +26,15 @@ class Recipe(Base):
     # Опции
     is_weight_based = Column(Boolean, default=False)  # Весовое блюдо
     exclude_from_discounts = Column(Boolean, default=False)  # Не участвует в скидках
+    show_in_pos = Column(Boolean, default=True)  # Показывать на кассе
 
     # Картинка (опционально)
     image_url = Column(String, nullable=True)
 
     # Связь с ингредиентами (состав)
     ingredients = relationship("RecipeIngredient", back_populates="recipe", cascade="all, delete-orphan")
+    # Связь с полуфабрикатами (будет добавлена)
+    semifinished_items = relationship("RecipeSemifinished", back_populates="recipe", cascade="all, delete-orphan")
 
     # Метаданные
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -42,8 +45,13 @@ class Recipe(Base):
 
     @property
     def cost(self):
-        """Себестоимость техкарты (сумма стоимостей всех ингредиентов)"""
-        return sum(ing.cost for ing in self.ingredients)
+        """
+        Себестоимость техкарты
+        = сумма стоимостей всех ингредиентов + сумма стоимостей всех полуфабрикатов
+        """
+        ingredients_cost = sum(ing.cost for ing in self.ingredients)
+        semifinished_cost = sum(sf.cost for sf in self.semifinished_items)
+        return ingredients_cost + semifinished_cost
 
     @property
     def markup_percentage(self):

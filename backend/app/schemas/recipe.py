@@ -35,6 +35,7 @@ class RecipeBase(BaseModel):
     price: float = Field(..., ge=0, description="Цена продажи")
     is_weight_based: bool = Field(False, description="Весовое блюдо")
     exclude_from_discounts: bool = Field(False, description="Не участвует в скидках")
+    show_in_pos: bool = Field(True, description="Показывать на кассе")
     image_url: Optional[str] = Field(None, max_length=500)
 
 

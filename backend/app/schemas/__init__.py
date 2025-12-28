@@ -15,6 +15,14 @@ from .recipe import (
     RecipeIngredientCreate,
     RecipeIngredientResponse
 )
+from .semifinished import (
+    SemifinishedCreate,
+    SemifinishedUpdate,
+    SemifinishedResponse,
+    SemifinishedListItem,
+    SemifinishedIngredientCreate,
+    SemifinishedIngredientResponse
+)
 
 __all__ = [
     "ProductCreate",
@@ -35,5 +43,11 @@ __all__ = [
     "RecipeResponse",
     "RecipeListItem",
     "RecipeIngredientCreate",
-    "RecipeIngredientResponse"
+    "RecipeIngredientResponse",
+    "SemifinishedCreate",
+    "SemifinishedUpdate",
+    "SemifinishedResponse",
+    "SemifinishedListItem",
+    "SemifinishedIngredientCreate",
+    "SemifinishedIngredientResponse"
 ]

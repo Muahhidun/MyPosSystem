@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/client';
+import { Search, Plus, X, Pencil, Trash2, Package } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
 
 // Фиксированный список единиц измерения
 const UNITS = [
@@ -83,7 +85,7 @@ function IngredientsPage() {
     setError(null);
 
     if (!formData.name || !formData.unit || !formData.purchase_price) {
-      setError('Заполните обязательные поля: название, единицу измерения и цену');
+      toast.error('Заполните обязательные поля: название, единицу измерения и цену');
       return;
     }
 
@@ -98,8 +100,10 @@ function IngredientsPage() {
 
       if (editingIngredient) {
         await api.updateIngredient(editingIngredient.id, data);
+        toast.success('Ингредиент обновлён');
       } else {
         await api.createIngredient(data);
+        toast.success('Ингредиент создан');
       }
 
       setFormData({ name: '', category: '', unit: 'кг', purchase_price: '', packaging_info: '' });
@@ -109,7 +113,7 @@ function IngredientsPage() {
       loadCategories();
     } catch (error) {
       console.error('Ошибка сохранения ингредиента:', error);
-      setError('Не удалось сохранить ингредиент: ' + (error.message || 'Неизвестная ошибка'));
+      toast.error('Не удалось сохранить ингредиент: ' + (error.message || 'Неизвестная ошибка'));
     }
   };
 
@@ -130,31 +134,33 @@ function IngredientsPage() {
       return;
     }
 
-    setError(null);
     try {
       await api.deleteIngredient(id);
+      toast.success('Ингредиент удалён');
       loadIngredients();
       loadCategories();
     } catch (error) {
       console.error('Ошибка удаления ингредиента:', error);
-      setError('Не удалось удалить ингредиент');
+      toast.error('Не удалось удалить ингредиент');
     }
   };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="text-2xl text-gray-600">Загрузка...</div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900"></div>
       </div>
     );
   }
 
   return (
     <div>
+      <Toaster position="top-right" />
+
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Ингредиенты</h1>
-          <p className="text-gray-600 mt-1">Справочник ингредиентов и сырья</p>
+          <h1 className="text-3xl font-bold text-slate-900">Ингредиенты</h1>
+          <p className="text-slate-500 mt-1">Справочник ингредиентов и сырья</p>
         </div>
         <button
           onClick={() => {
@@ -162,9 +168,9 @@ function IngredientsPage() {
             setEditingIngredient(null);
             setFormData({ name: '', category: '', unit: 'кг', purchase_price: '', packaging_info: '' });
           }}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold shadow-lg"
+          className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl hover:bg-slate-800 font-semibold shadow-lg shadow-slate-300 transition-all active:scale-95"
         >
-          {showForm ? 'Отмена' : '+ Добавить ингредиент'}
+          {showForm ? <><X className="w-5 h-5" /> Отмена</> : <><Plus className="w-5 h-5" /> Добавить ингредиент</>}
         </button>
       </div>
 
@@ -196,31 +202,34 @@ function IngredientsPage() {
       )}
 
       {/* Поиск и фильтры */}
-      <div className="bg-white p-4 rounded-lg shadow-md mb-6">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
         <div className="grid grid-cols-3 gap-4">
           {/* Быстрый поиск */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Быстрый поиск
             </label>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Поиск по названию..."
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск по названию..."
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all"
+              />
+            </div>
           </div>
 
           {/* Фильтр по категории */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Категория
             </label>
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all"
             >
               <option value="">Все категории</option>
               {categories.map(cat => (
@@ -231,13 +240,13 @@ function IngredientsPage() {
 
           {/* Фильтр по единице измерения */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Единица измерения
             </label>
             <select
               value={filterUnit}
               onChange={(e) => setFilterUnit(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all"
             >
               <option value="">Все единицы</option>
               {UNITS.map(unit => (
@@ -249,8 +258,11 @@ function IngredientsPage() {
 
         {/* Показать количество найденных */}
         {(searchQuery || filterCategory || filterUnit) && (
-          <div className="mt-3 text-sm text-gray-600">
-            Найдено: {filteredIngredients.length} из {ingredients.length}
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <Package className="w-4 h-4" />
+              <span>Найдено: <span className="font-semibold text-slate-900">{filteredIngredients.length}</span> из {ingredients.length}</span>
+            </div>
           </div>
         )}
       </div>
@@ -375,75 +387,80 @@ function IngredientsPage() {
       )}
 
       {/* Список ингредиентов */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <table className="min-w-full">
-          <thead className="bg-gray-50 border-b-2">
+          <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 ID
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 Название
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 Категория
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 Единица
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 Цена закупки
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 Упаковка
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 Действия
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-slate-100">
             {filteredIngredients.map(ingredient => (
-              <tr key={ingredient.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              <tr key={ingredient.id} className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-400">
                   #{ingredient.id}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="font-semibold text-gray-900">{ingredient.name}</div>
+                <td className="px-6 py-4">
+                  <div className="font-semibold text-slate-900">{ingredient.name}</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {ingredient.category || <span className="text-gray-400">-</span>}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                  {ingredient.category || <span className="text-slate-400">-</span>}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-sm font-semibold rounded">
+                  <span className="inline-flex px-2.5 py-1 bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg">
                     {ingredient.unit}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="font-semibold text-gray-900">
-                    {ingredient.purchase_price.toFixed(2)} тг/{ingredient.unit}
+                  <div className="font-semibold text-slate-900">
+                    {ingredient.purchase_price.toFixed(2)} тг
                   </div>
+                  <div className="text-xs text-slate-500">за {ingredient.unit}</div>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-600">
+                <td className="px-6 py-4 text-sm text-slate-600">
                   {ingredient.packaging_info ? (
                     <div className="max-w-xs">{ingredient.packaging_info}</div>
                   ) : (
-                    <span className="text-gray-400">-</span>
+                    <span className="text-slate-400">-</span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
-                  <button
-                    onClick={() => handleEdit(ingredient)}
-                    className="text-blue-600 hover:text-blue-900 font-medium"
-                  >
-                    Изменить
-                  </button>
-                  <button
-                    onClick={() => handleDelete(ingredient.id, ingredient.name)}
-                    className="text-red-600 hover:text-red-900 font-medium"
-                  >
-                    Удалить
-                  </button>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEdit(ingredient)}
+                      className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+                      title="Редактировать"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(ingredient.id, ingredient.name)}
+                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      title="Удалить"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

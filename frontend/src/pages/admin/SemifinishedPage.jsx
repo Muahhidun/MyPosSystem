@@ -290,7 +290,8 @@ function SemifinishedPage() {
     const total = calculateTotalCost();
     const output = calculateTotalWeight();
     if (output === 0) return 0;
-    return total / output;
+    // Конвертируем в цену за кг (умножаем на 1000, так как вес в граммах)
+    return (total / output) * 1000;
   };
 
   const filteredSemifinished = semifinished.filter(item => {
@@ -469,8 +470,8 @@ function SemifinishedPage() {
                     <div className="text-2xl font-bold text-slate-900">{calculateTotalCost().toFixed(2)} ₸</div>
                   </div>
                   <div>
-                    <div className="text-sm text-slate-500">Цена за {formData.unit}</div>
-                    <div className="text-2xl font-bold text-emerald-600">{calculateCostPerUnit().toFixed(4)} ₸</div>
+                    <div className="text-sm text-slate-500">Цена за кг</div>
+                    <div className="text-2xl font-bold text-emerald-600">{calculateCostPerUnit().toFixed(2)} ₸</div>
                   </div>
                 </div>
               </div>
@@ -510,13 +511,14 @@ function SemifinishedPage() {
               <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Категория</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Выход</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Себестоимость</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Цена/{formData.unit || 'ед'}</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Цена/кг</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Действия</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredSemifinished.map(item => {
-              const costPerUnit = item.output_quantity > 0 ? (item.cost / item.output_quantity) : 0;
+              // Цена за кг (умножаем на 1000, так как вес в граммах)
+              const costPerUnit = item.output_quantity > 0 ? (item.cost / item.output_quantity) * 1000 : 0;
               return (
                 <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
@@ -538,7 +540,7 @@ function SemifinishedPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-emerald-600">
-                      {costPerUnit.toFixed(4)} ₸
+                      {costPerUnit.toFixed(2)} ₸
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">

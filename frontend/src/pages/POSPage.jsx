@@ -1,4 +1,9 @@
 import { useState, useEffect } from 'react';
+import {
+  ShoppingCart, Minus, Plus, X, Banknote, CreditCard,
+  Package, Grid3x3, Trash2
+} from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
 import api from '../api/client';
 import ReceiptPrinter from '../utils/receiptPrinter';
 import LabelPrinter from '../utils/labelPrinter';
@@ -34,7 +39,7 @@ function POSPage() {
       setProducts(data);
     } catch (error) {
       console.error('Ошибка загрузки товаров:', error);
-      alert('Не удалось загрузить товары');
+      toast.error('Не удалось загрузить товары');
     } finally {
       setLoading(false);
     }
@@ -82,7 +87,7 @@ function POSPage() {
 
   const handleCheckout = async (paymentMethod) => {
     if (cart.length === 0) {
-      alert('Корзина пуста');
+      toast.error('Корзина пуста');
       return;
     }
 
@@ -127,11 +132,11 @@ function POSPage() {
         }
       }
 
-      alert(`Заказ #${order.order_number} создан! Сумма: ${order.total_amount}₸`);
+      toast.success(`Заказ #${order.order_number} создан! Сумма: ${order.total_amount}₸`);
       setCart([]);
     } catch (error) {
       console.error('Ошибка создания заказа:', error);
-      alert('Не удалось создать заказ');
+      toast.error('Не удалось создать заказ');
     }
   };
 
@@ -141,31 +146,41 @@ function POSPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-2xl text-gray-600">Загрузка...</div>
+      <div className="flex justify-center items-center h-screen bg-slate-50 font-inter">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <div className="text-lg font-medium text-slate-600">Загрузка...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex bg-gray-100">
+    <div className="h-screen flex bg-slate-50 font-inter">
+      <Toaster position="top-center" />
+
       {/* Левая часть - товары */}
       <div className="flex-1 p-6 overflow-auto">
-        <h1 className="text-3xl font-bold mb-6">Касса</h1>
+        <div className="mb-6 flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center">
+            <ShoppingCart size={24} className="text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-slate-900">Касса</h1>
+        </div>
 
         {/* Категории */}
-        <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
+        <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap ${
+              className={`px-4 py-2 rounded-lg whitespace-nowrap font-semibold text-sm transition-all ${
                 selectedCategory === cat
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
               }`}
             >
-              {cat === 'all' ? 'Все' : cat}
+              {cat === 'all' ? '📦 Все' : cat}
             </button>
           ))}
         </div>
@@ -176,63 +191,85 @@ function POSPage() {
             <button
               key={product.id}
               onClick={() => addToCart(product)}
-              className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow text-left"
+              className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-indigo-300 transition-all text-left group"
             >
-              <h3 className="font-semibold text-lg mb-2">{product.name}</h3>
-              <p className="text-2xl font-bold text-blue-600">{product.price}₸</p>
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-10 h-10 bg-slate-100 group-hover:bg-indigo-100 rounded-lg flex items-center justify-center transition-colors">
+                  <Package size={20} className="text-slate-500 group-hover:text-indigo-600 transition-colors" />
+                </div>
+                <Plus size={20} className="text-slate-400 group-hover:text-indigo-600 transition-colors" />
+              </div>
+              <h3 className="font-semibold text-base mb-2 text-slate-900 line-clamp-2">{product.name}</h3>
+              <p className="text-2xl font-bold text-indigo-700">{product.price}₸</p>
               {product.category && (
-                <span className="text-xs text-gray-500 mt-1">{product.category}</span>
+                <span className="inline-block mt-2 text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                  {product.category}
+                </span>
               )}
             </button>
           ))}
         </div>
 
         {filteredProducts.length === 0 && (
-          <div className="text-center text-gray-500 mt-8">
-            Нет товаров в этой категории
+          <div className="text-center text-slate-500 mt-12">
+            <Package size={48} className="mx-auto mb-3 text-slate-300" strokeWidth={1.5} />
+            <p className="font-medium">Нет товаров в этой категории</p>
+            <p className="text-xs text-slate-400 mt-1">Выберите другую категорию</p>
           </div>
         )}
       </div>
 
       {/* Правая часть - корзина */}
-      <div className="w-96 bg-white border-l shadow-lg p-4 flex flex-col">
-        <h2 className="text-2xl font-bold mb-4">Заказ</h2>
+      <div className="w-96 bg-white border-l border-slate-200 shadow-xl p-6 flex flex-col">
+        <div className="mb-6 pb-4 border-b border-slate-200">
+          <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <ShoppingCart size={24} className="text-indigo-600" />
+            Заказ
+            {cart.length > 0 && (
+              <span className="ml-auto text-sm font-semibold bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full">
+                {cart.length}
+              </span>
+            )}
+          </h2>
+        </div>
 
         {/* Список товаров в корзине */}
-        <div className="flex-1 overflow-auto mb-4">
+        <div className="flex-1 overflow-auto mb-4 space-y-3">
           {cart.length === 0 ? (
-            <div className="text-center text-gray-400 mt-8">
-              Корзина пуста
+            <div className="text-center text-slate-400 mt-12">
+              <ShoppingCart size={48} className="mx-auto mb-3 text-slate-300" strokeWidth={1.5} />
+              <p className="font-medium">Корзина пуста</p>
+              <p className="text-xs text-slate-400 mt-1">Добавьте товары из каталога</p>
             </div>
           ) : (
             cart.map(item => (
-              <div key={item.id} className="mb-3 p-3 border rounded-lg">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="font-semibold">{item.name}</span>
+              <div key={item.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50 hover:bg-white transition-colors">
+                <div className="flex justify-between items-start mb-3">
+                  <span className="font-semibold text-slate-900">{item.name}</span>
                   <button
                     onClick={() => removeFromCart(item.id)}
-                    className="text-red-500 hover:text-red-700 text-sm"
+                    className="text-slate-400 hover:text-red-600 transition-colors"
                   >
-                    ✕
+                    <X size={18} />
                   </button>
                 </div>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300"
+                      className="w-8 h-8 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center"
                     >
-                      -
+                      <Minus size={16} className="text-slate-600" />
                     </button>
-                    <span className="w-8 text-center font-bold">{item.quantity}</span>
+                    <span className="w-10 text-center font-bold text-slate-900">{item.quantity}</span>
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300"
+                      className="w-8 h-8 bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center"
                     >
-                      +
+                      <Plus size={16} className="text-white" />
                     </button>
                   </div>
-                  <span className="font-bold text-lg">
+                  <span className="font-bold text-lg text-indigo-700">
                     {(item.price * item.quantity).toFixed(0)}₸
                   </span>
                 </div>
@@ -242,29 +279,33 @@ function POSPage() {
         </div>
 
         {/* Итого */}
-        <div className="border-t pt-4 mb-4">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-xl font-semibold">Итого:</span>
-            <span className="text-3xl font-bold text-blue-600">
-              {getTotalAmount().toFixed(0)}₸
-            </span>
+        <div className="border-t border-slate-200 pt-6 mb-6">
+          <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 mb-4">
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-semibold text-slate-700">Итого:</span>
+              <span className="text-3xl font-bold text-indigo-700">
+                {getTotalAmount().toFixed(0)}₸
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Кнопки оплаты */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <button
             onClick={() => handleCheckout('cash')}
             disabled={cart.length === 0}
-            className="w-full bg-green-600 text-white py-4 rounded-lg text-lg font-semibold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 text-white py-4 rounded-xl text-lg font-bold hover:from-emerald-700 hover:to-emerald-600 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
           >
+            <Banknote size={22} />
             Оплата наличными
           </button>
           <button
             onClick={() => handleCheckout('card')}
             disabled={cart.length === 0}
-            className="w-full bg-blue-600 text-white py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 text-white py-4 rounded-xl text-lg font-bold hover:from-indigo-700 hover:to-indigo-600 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
           >
+            <CreditCard size={22} />
             Оплата картой
           </button>
         </div>

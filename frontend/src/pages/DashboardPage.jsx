@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  RefreshCw, Home, Printer, Tag, ShoppingCart,
+  TrendingUp, Banknote, CreditCard, FileText
+} from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
 import api from '../api/client';
 import ReceiptPrinter from '../utils/receiptPrinter';
 import LabelPrinter from '../utils/labelPrinter';
@@ -57,7 +62,7 @@ function DashboardPage() {
 
   const handleReprint = async (order, type) => {
     if (!settings) {
-      alert('Настройки не загружены');
+      toast.error('Настройки не загружены');
       return;
     }
 
@@ -67,7 +72,7 @@ function DashboardPage() {
     try {
       if (type === 'receipt') {
         if (!settings.receipt_printer_ip) {
-          alert('IP адрес принтера чеков не настроен');
+          toast.error('IP адрес принтера чеков не настроен');
           return;
         }
         const printer = new ReceiptPrinter(settings.receipt_printer_ip);
@@ -75,19 +80,19 @@ function DashboardPage() {
           businessName: settings.business_name,
           phone: settings.phone
         });
-        alert('Чек отправлен на печать!');
+        toast.success('Чек отправлен на печать!');
       } else if (type === 'label') {
         if (!settings.label_printer_ip) {
-          alert('IP адрес принтера бегунков не настроен');
+          toast.error('IP адрес принтера бегунков не настроен');
           return;
         }
         const printer = new LabelPrinter(settings.label_printer_ip);
         await printer.printKitchenLabel(order);
-        alert('Бегунок отправлен на печать!');
+        toast.success('Бегунок отправлен на печать!');
       }
     } catch (error) {
       console.error('Ошибка печати:', error);
-      alert('Ошибка печати: ' + error.message);
+      toast.error('Ошибка печати: ' + error.message);
     } finally {
       setPrinting(prev => ({ ...prev, [printKey]: false }));
     }
@@ -95,41 +100,39 @@ function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
+      <div className="flex justify-center items-center h-screen bg-slate-50 font-inter">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <div className="text-lg text-gray-600">Загрузка...</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <div className="text-lg font-medium text-slate-600">Загрузка...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-slate-50 pb-20 font-inter">
+      <Toaster position="top-center" />
+
       {/* Мобильная шапка */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
+      <header className="bg-white shadow-sm sticky top-0 z-10 border-b border-slate-200">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Дашборд</h1>
-              <p className="text-xs text-gray-600">Сегодня</p>
+              <h1 className="text-xl font-bold text-slate-900">Дашборд</h1>
+              <p className="text-xs text-slate-500">Сегодня</p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={loadData}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
+                <RefreshCw size={20} />
               </button>
               <Link
                 to="/"
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
+                <Home size={20} />
               </Link>
             </div>
           </div>
@@ -141,25 +144,37 @@ function DashboardPage() {
         {/* Статистика - карточки */}
         {stats && (
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white p-4 rounded-xl shadow-sm">
-              <p className="text-xs text-gray-600 mb-1">Заказов</p>
-              <p className="text-3xl font-bold text-blue-600">{stats.total_orders}</p>
+            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 rounded-xl shadow-sm border border-indigo-200">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-indigo-900 uppercase tracking-wide">Заказов</p>
+                <ShoppingCart size={16} className="text-indigo-600" />
+              </div>
+              <p className="text-3xl font-bold text-indigo-700">{stats.total_orders}</p>
             </div>
-            <div className="bg-white p-4 rounded-xl shadow-sm">
-              <p className="text-xs text-gray-600 mb-1">Выручка</p>
-              <p className="text-2xl font-bold text-green-600">
+            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-4 rounded-xl shadow-sm border border-emerald-200">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-emerald-900 uppercase tracking-wide">Выручка</p>
+                <TrendingUp size={16} className="text-emerald-600" />
+              </div>
+              <p className="text-2xl font-bold text-emerald-700">
                 {stats.total_revenue.toFixed(0)}₸
               </p>
             </div>
-            <div className="bg-white p-4 rounded-xl shadow-sm">
-              <p className="text-xs text-gray-600 mb-1">Наличные</p>
-              <p className="text-xl font-bold text-gray-700">
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Наличные</p>
+                <Banknote size={16} className="text-slate-500" />
+              </div>
+              <p className="text-xl font-bold text-slate-700">
                 {stats.cash_revenue.toFixed(0)}₸
               </p>
             </div>
-            <div className="bg-white p-4 rounded-xl shadow-sm">
-              <p className="text-xs text-gray-600 mb-1">Безнал</p>
-              <p className="text-xl font-bold text-gray-700">
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Безнал</p>
+                <CreditCard size={16} className="text-slate-500" />
+              </div>
+              <p className="text-xl font-bold text-slate-700">
                 {stats.card_revenue.toFixed(0)}₸
               </p>
             </div>
@@ -168,20 +183,28 @@ function DashboardPage() {
 
         {/* Топ товаров */}
         {stats && stats.top_products.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm">
-            <div className="p-4 border-b">
-              <h2 className="font-semibold text-gray-900">Топ товаров</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+            <div className="p-4 border-b border-slate-100">
+              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+                <TrendingUp size={18} className="text-indigo-600" />
+                Топ товаров
+              </h2>
             </div>
             <div className="p-4 space-y-3">
               {stats.top_products.slice(0, 5).map((product, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm text-gray-900">{product.name}</p>
-                    <p className="text-xs text-gray-500">
-                      Продано: {product.quantity} шт
-                    </p>
+                <div key={index} className="flex justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm">
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm text-slate-900">{product.name}</p>
+                      <p className="text-xs text-slate-500">
+                        Продано: {product.quantity} шт
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-lg font-bold text-blue-600">
+                  <p className="text-lg font-bold text-emerald-600">
                     {product.revenue.toFixed(0)}₸
                   </p>
                 </div>
@@ -191,45 +214,52 @@ function DashboardPage() {
         )}
 
         {/* Последние заказы */}
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-4 border-b flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Последние заказы</h2>
-            <div className="flex items-center gap-2 text-xs">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+              <FileText size={18} className="text-indigo-600" />
+              Последние заказы
+            </h2>
+            <label className="flex items-center gap-2 text-xs cursor-pointer">
               <input
                 type="checkbox"
                 checked={autoRefresh}
                 onChange={(e) => setAutoRefresh(e.target.checked)}
-                className="w-4 h-4"
+                className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
               />
-              <span className="text-gray-600">Авто</span>
-            </div>
+              <span className="text-slate-600 font-medium">Авто</span>
+            </label>
           </div>
-          <div className="divide-y">
+          <div className="divide-y divide-slate-100">
             {orders.slice(0, 20).map((order) => (
-              <div key={order.id} className="p-4">
+              <div key={order.id} className="p-4 hover:bg-slate-50 transition-colors">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <p className="font-semibold text-sm">#{order.order_number}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="font-semibold text-sm text-slate-900">#{order.order_number}</p>
+                    <p className="text-xs text-slate-500">
                       {formatDate(order.created_at)}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-blue-600">
+                    <p className="text-lg font-bold text-indigo-700">
                       {order.total_amount.toFixed(0)}₸
                     </p>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
+                    <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-semibold ${
                       order.payment_method === 'cash'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-blue-100 text-blue-800'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-indigo-100 text-indigo-700'
                     }`}>
-                      {order.payment_method === 'cash' ? 'Наличные' : 'Карта'}
+                      {order.payment_method === 'cash' ? (
+                        <><Banknote size={12} /> Наличные</>
+                      ) : (
+                        <><CreditCard size={12} /> Карта</>
+                      )}
                     </span>
                   </div>
                 </div>
-                <div className="text-sm text-gray-600 mb-3">
+                <div className="text-sm text-slate-600 mb-3 space-y-1">
                   {order.items.map((item, idx) => (
-                    <div key={idx} className="text-xs">
+                    <div key={idx} className="text-xs text-slate-600">
                       • {item.product_name} x{item.quantity}
                     </div>
                   ))}
@@ -241,11 +271,9 @@ function DashboardPage() {
                       <button
                         onClick={() => handleReprint(order, 'receipt')}
                         disabled={printing[`${order.id}-receipt`]}
-                        className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                        className="flex-1 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 transition-colors"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                        </svg>
+                        <Printer size={14} />
                         {printing[`${order.id}-receipt`] ? 'Печать...' : 'Чек'}
                       </button>
                     )}
@@ -253,11 +281,9 @@ function DashboardPage() {
                       <button
                         onClick={() => handleReprint(order, 'label')}
                         disabled={printing[`${order.id}-label`]}
-                        className="flex-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                        className="flex-1 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-semibold hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 transition-colors"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                        </svg>
+                        <Tag size={14} />
                         {printing[`${order.id}-label`] ? 'Печать...' : 'Бегунок'}
                       </button>
                     )}
@@ -268,18 +294,17 @@ function DashboardPage() {
           </div>
 
           {orders.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p>Заказов пока нет</p>
+            <div className="text-center py-12 text-slate-500">
+              <FileText size={48} className="mx-auto mb-3 text-slate-300" strokeWidth={1.5} />
+              <p className="font-medium">Заказов пока нет</p>
+              <p className="text-xs text-slate-400 mt-1">Они появятся здесь автоматически</p>
             </div>
           )}
         </div>
 
         {/* Индикатор живого обновления */}
         {autoRefresh && (
-          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-full shadow-lg text-sm font-medium flex items-center gap-2">
+          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-4 py-2 rounded-full shadow-lg text-sm font-semibold flex items-center gap-2">
             <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
             Автообновление
           </div>

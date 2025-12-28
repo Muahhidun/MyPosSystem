@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../../api/client';
-import { Search, Plus, X, Pencil, Trash2, ChefHat, Calculator } from 'lucide-react';
+import { Search, Plus, X, Pencil, Trash2, ChefHat, Calculator, ChevronDown } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 function RecipesPage() {
@@ -16,11 +16,10 @@ function RecipesPage() {
   const [formData, setFormData] = useState({
     name: '',
     category: '',
-    output_weight: '',
     price: '',
     is_weight_based: false,
     exclude_from_discounts: false,
-    ingredients: []  // [{ ingredient_id, gross_weight, net_weight, cooking_method, is_cleaned }]
+    ingredients: []  // [{ ingredient_id, weight, cooking_method }]
   });
 
   useEffect(() => {
@@ -72,16 +71,16 @@ function RecipesPage() {
       const data = {
         name: formData.name,
         category: formData.category || null,
-        output_weight: parseFloat(formData.output_weight) || 0,
+        output_weight: calculateOutputWeight(),
         price: parseFloat(formData.price),
         is_weight_based: formData.is_weight_based,
         exclude_from_discounts: formData.exclude_from_discounts,
         ingredients: formData.ingredients.map(ing => ({
           ingredient_id: ing.ingredient_id,
-          gross_weight: parseFloat(ing.gross_weight),
-          net_weight: parseFloat(ing.net_weight),
+          gross_weight: parseFloat(ing.weight),  // В граммах
+          net_weight: parseFloat(ing.weight),    // В граммах (брутто = нетто)
           cooking_method: ing.cooking_method || null,
-          is_cleaned: ing.is_cleaned
+          is_cleaned: false
         }))
       };
 
@@ -93,7 +92,7 @@ function RecipesPage() {
         toast.success('Техкарта создана');
       }
 
-      setFormData({ name: '', category: '', output_weight: '', price: '', is_weight_based: false, exclude_from_discounts: false, ingredients: [] });
+      setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, ingredients: [] });
       setEditingRecipe(null);
       setShowForm(false);
       loadRecipes();
@@ -106,22 +105,18 @@ function RecipesPage() {
 
   const handleEdit = async (recipe) => {
     try {
-      // Загружаем полную информацию о техкарте
       const fullRecipe = await api.getRecipe(recipe.id);
       setEditingRecipe(fullRecipe);
       setFormData({
         name: fullRecipe.name,
         category: fullRecipe.category || '',
-        output_weight: fullRecipe.output_weight,
         price: fullRecipe.price,
         is_weight_based: fullRecipe.is_weight_based,
         exclude_from_discounts: fullRecipe.exclude_from_discounts,
         ingredients: fullRecipe.ingredients.map(ing => ({
           ingredient_id: ing.ingredient_id,
-          gross_weight: ing.gross_weight,
-          net_weight: ing.net_weight,
-          cooking_method: ing.cooking_method || '',
-          is_cleaned: ing.is_cleaned
+          weight: ing.net_weight,  // Получаем в граммах
+          cooking_method: ing.cooking_method || ''
         }))
       });
       setShowForm(true);
@@ -152,10 +147,8 @@ function RecipesPage() {
       ...formData,
       ingredients: [...formData.ingredients, {
         ingredient_id: '',
-        gross_weight: '',
-        net_weight: '',
-        cooking_method: '',
-        is_cleaned: false
+        weight: '',
+        cooking_method: ''
       }]
     });
   };
@@ -173,16 +166,27 @@ function RecipesPage() {
     setFormData({ ...formData, ingredients: updated });
   };
 
+  // Расчёт выхода (сумма весов всех ингредиентов)
+  const calculateOutputWeight = () => {
+    return formData.ingredients.reduce((sum, ing) => {
+      return sum + (parseFloat(ing.weight) || 0);
+    }, 0);
+  };
+
   // Расчёт себестоимости
   const calculateCost = () => {
     return formData.ingredients.reduce((sum, ing) => {
       const ingredient = ingredients.find(i => i.id === parseInt(ing.ingredient_id));
-      if (!ingredient || !ing.net_weight) return sum;
+      if (!ingredient || !ing.weight) return sum;
 
-      let quantity = parseFloat(ing.net_weight);
-      // Конвертация единиц
-      if (ingredient.unit === 'кг' && quantity < 10) quantity = quantity / 1000;
-      if (ingredient.unit === 'л' && quantity < 10) quantity = quantity / 1000;
+      const weightInGrams = parseFloat(ing.weight);
+
+      // Конвертация граммов в кг/л для расчета стоимости
+      let quantity = weightInGrams;
+      if (ingredient.unit === 'кг' || ingredient.unit === 'л') {
+        quantity = weightInGrams / 1000;  // граммы → кг/л
+      }
+      // Для шт - используем как есть
 
       return sum + (quantity * ingredient.purchase_price);
     }, 0);
@@ -227,7 +231,7 @@ function RecipesPage() {
           onClick={() => {
             setShowForm(!showForm);
             setEditingRecipe(null);
-            setFormData({ name: '', category: '', output_weight: '', price: '', is_weight_based: false, exclude_from_discounts: false, ingredients: [] });
+            setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, ingredients: [] });
           }}
           className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl hover:bg-slate-800 font-semibold shadow-lg shadow-slate-300 transition-all active:scale-95"
         >
@@ -294,7 +298,7 @@ function RecipesPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all"
-                  placeholder="4 Сезона"
+                  placeholder="Черничный чай (холодный)"
                   required
                 />
               </div>
@@ -306,7 +310,7 @@ function RecipesPage() {
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all"
-                  placeholder="Пиццы"
+                  placeholder="Чаи"
                   list="categories-list"
                 />
                 <datalist id="categories-list">
@@ -326,20 +330,19 @@ function RecipesPage() {
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all"
-                  placeholder="2950"
+                  placeholder="650"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Выход (г/мл)</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Выход (гр/мл) - автоматически</label>
                 <input
                   type="number"
-                  step="0.01"
-                  value={formData.output_weight}
-                  onChange={(e) => setFormData({ ...formData, output_weight: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all"
-                  placeholder="637"
+                  value={calculateOutputWeight()}
+                  readOnly
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-600 cursor-not-allowed"
+                  placeholder="0"
                 />
               </div>
             </div>
@@ -364,80 +367,16 @@ function RecipesPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {formData.ingredients.map((ing, index) => {
-                    const selectedIngredient = ingredients.find(i => i.id === parseInt(ing.ingredient_id));
-                    return (
-                      <div key={index} className="flex gap-3 items-start bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        {/* Выбор ингредиента */}
-                        <div className="flex-1">
-                          <select
-                            value={ing.ingredient_id}
-                            onChange={(e) => updateIngredient(index, 'ingredient_id', e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900"
-                            required
-                          >
-                            <option value="">Выберите ингредиент</option>
-                            {ingredients.map(ingredient => (
-                              <option key={ingredient.id} value={ingredient.id}>
-                                {ingredient.name} ({ingredient.unit})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Брутто */}
-                        <div className="w-24">
-                          <label className="text-xs text-slate-500 mb-1 block">Брутто</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={ing.gross_weight}
-                            onChange={(e) => updateIngredient(index, 'gross_weight', e.target.value)}
-                            className="w-full px-2 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-slate-900"
-                            placeholder="100"
-                            required
-                          />
-                        </div>
-
-                        {/* Нетто */}
-                        <div className="w-24">
-                          <label className="text-xs text-slate-500 mb-1 block">Нетто</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={ing.net_weight}
-                            onChange={(e) => updateIngredient(index, 'net_weight', e.target.value)}
-                            className="w-full px-2 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-slate-900"
-                            placeholder="75"
-                            required
-                          />
-                        </div>
-
-                        {/* Стоимость (расчётное) */}
-                        {selectedIngredient && ing.net_weight && (
-                          <div className="w-28 pt-6">
-                            <div className="text-sm font-semibold text-slate-900">
-                              {(() => {
-                                let qty = parseFloat(ing.net_weight);
-                                if (selectedIngredient.unit === 'кг' && qty < 10) qty /= 1000;
-                                if (selectedIngredient.unit === 'л' && qty < 10) qty /= 1000;
-                                return (qty * selectedIngredient.purchase_price).toFixed(2);
-                              })()} ₸
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Удалить */}
-                        <button
-                          type="button"
-                          onClick={() => removeIngredient(index)}
-                          className="mt-6 p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    );
-                  })}
+                  {formData.ingredients.map((ing, index) => (
+                    <IngredientRow
+                      key={index}
+                      index={index}
+                      ingredient={ing}
+                      ingredients={ingredients}
+                      updateIngredient={updateIngredient}
+                      removeIngredient={removeIngredient}
+                    />
+                  ))}
                 </div>
               )}
             </div>
@@ -479,7 +418,7 @@ function RecipesPage() {
                 onClick={() => {
                   setShowForm(false);
                   setEditingRecipe(null);
-                  setFormData({ name: '', category: '', output_weight: '', price: '', is_weight_based: false, exclude_from_discounts: false, ingredients: [] });
+                  setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, ingredients: [] });
                 }}
                 className="bg-slate-100 text-slate-700 px-8 py-3 rounded-xl hover:bg-slate-200 font-semibold transition-all"
               >
@@ -564,6 +503,130 @@ function RecipesPage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Компонент строки ингредиента с searchable select
+function IngredientRow({ index, ingredient, ingredients, updateIngredient, removeIngredient }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const selectedIngredient = ingredients.find(i => i.id === parseInt(ingredient.ingredient_id));
+
+  // Фильтрация ингредиентов по поисковому запросу
+  const filteredIngredients = ingredients.filter(ing =>
+    ing.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Закрытие dropdown при клике вне элемента
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectIngredient = (ing) => {
+    updateIngredient(index, 'ingredient_id', ing.id);
+    setSearchTerm('');
+    setShowDropdown(false);
+  };
+
+  // Расчёт стоимости для этого ингредиента
+  const calculateIngredientCost = () => {
+    if (!selectedIngredient || !ingredient.weight) return 0;
+
+    const weightInGrams = parseFloat(ingredient.weight);
+    let quantity = weightInGrams;
+
+    if (selectedIngredient.unit === 'кг' || selectedIngredient.unit === 'л') {
+      quantity = weightInGrams / 1000;
+    }
+
+    return (quantity * selectedIngredient.purchase_price).toFixed(2);
+  };
+
+  return (
+    <div className="flex gap-3 items-start bg-slate-50 p-4 rounded-xl border border-slate-200">
+      {/* Выбор ингредиента с поиском */}
+      <div className="flex-1 relative" ref={dropdownRef}>
+        <div className="relative">
+          <input
+            type="text"
+            value={selectedIngredient ? selectedIngredient.name : searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setShowDropdown(true);
+            }}
+            onFocus={() => setShowDropdown(true)}
+            placeholder="Начните вводить название..."
+            className="w-full px-3 py-2 pr-8 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900"
+          />
+          <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        </div>
+
+        {/* Dropdown со списком ингредиентов */}
+        {showDropdown && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {filteredIngredients.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-slate-500">Ничего не найдено</div>
+            ) : (
+              filteredIngredients.map(ing => (
+                <div
+                  key={ing.id}
+                  onClick={() => handleSelectIngredient(ing)}
+                  className="px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm border-b border-slate-100 last:border-0"
+                >
+                  <div className="font-medium text-slate-900">{ing.name}</div>
+                  <div className="text-xs text-slate-500">{ing.unit} • {ing.purchase_price} ₸/{ing.unit}</div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Вес в граммах */}
+      <div className="w-32">
+        <label className="text-xs text-slate-500 mb-1 block">Вес</label>
+        <div className="relative">
+          <input
+            type="number"
+            step="1"
+            value={ingredient.weight}
+            onChange={(e) => updateIngredient(index, 'weight', e.target.value)}
+            className="w-full px-2 py-2 pr-8 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-slate-900"
+            placeholder="60"
+            required
+          />
+          <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-slate-400 pointer-events-none">
+            гр
+          </span>
+        </div>
+      </div>
+
+      {/* Стоимость (расчётное) */}
+      {selectedIngredient && ingredient.weight && (
+        <div className="w-28 pt-6">
+          <div className="text-sm font-semibold text-slate-900">
+            {calculateIngredientCost()} ₸
+          </div>
+        </div>
+      )}
+
+      {/* Удалить */}
+      <button
+        type="button"
+        onClick={() => removeIngredient(index)}
+        className="mt-6 p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+      >
+        <X className="w-4 h-4" />
+      </button>
     </div>
   );
 }

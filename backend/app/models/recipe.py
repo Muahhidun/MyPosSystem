@@ -91,23 +91,27 @@ class RecipeIngredient(Base):
     def cost(self):
         """
         Стоимость этого ингредиента в техкарте
-        Рассчитывается: нетто * цена_за_единицу_ингредиента
+        Рассчитывается: вес(граммы) * цена_за_единицу_ингредиента
+
+        Вес ВСЕГДА хранится в граммах (net_weight).
+        Конвертируем в кг/л для расчёта стоимости.
 
         Например:
         - Ингредиент: Кетчуп, цена 100₸/кг
-        - В техкарте: 25г (0.025 кг)
+        - В техкарте: 25 граммов
+        - Конвертируем: 25 / 1000 = 0.025 кг
         - Стоимость: 0.025 * 100 = 2.5₸
         """
         if not self.ingredient:
             return 0
 
-        # Конвертируем в правильные единицы
-        quantity = self.net_weight
+        # Вес всегда в граммах
+        weight_in_grams = self.net_weight
 
-        # Если ингредиент в кг, а мы указали в граммах - конвертируем
-        if self.ingredient.unit == 'кг' and quantity < 10:  # Вероятно граммы
-            quantity = quantity / 1000
-        elif self.ingredient.unit == 'л' and quantity < 10:  # Вероятно мл
-            quantity = quantity / 1000
+        # Конвертируем граммы в кг/л для расчёта стоимости
+        quantity = weight_in_grams
+        if self.ingredient.unit == 'кг' or self.ingredient.unit == 'л':
+            quantity = weight_in_grams / 1000  # граммы → кг/л
+        # Для 'шт' - используем как есть (граммы = штуки в этом контексте)
 
         return round(quantity * self.ingredient.purchase_price, 2)

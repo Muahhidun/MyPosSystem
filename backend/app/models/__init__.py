@@ -1,5 +1,5 @@
 from .product import Product
-from .order import Order, OrderItem, PaymentMethod, OrderStatus
+from .order import Order, OrderItem, PaymentMethod, OrderStatus, ItemType
 from .settings import Settings
 from .ingredient import Ingredient
 from .recipe import Recipe, RecipeIngredient
@@ -11,6 +11,7 @@ __all__ = [
     "OrderItem",
     "PaymentMethod",
     "OrderStatus",
+    "ItemType",
     "Settings",
     "Ingredient",
     "Recipe",

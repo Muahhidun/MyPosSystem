@@ -3,6 +3,115 @@ import api from '../../api/client';
 import { Search, Plus, X, Pencil, Trash2, FlaskConical, ChevronDown } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
+// Компонент вынесен наружу чтобы не пересоздаваться при каждом рендере
+function IngredientRow({ index, ingredient, ingredients, updateIngredient, removeIngredient }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const selectedIngredient = ingredients.find(i => i.id === ingredient.ingredient_id);
+
+  const filteredIngredients = ingredients.filter(ing =>
+    ing.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSelectIngredient = (ing) => {
+    updateIngredient(index, 'ingredient_id', ing.id);
+    setSearchTerm('');
+    setShowDropdown(false);
+  };
+
+  const calculateIngredientCost = () => {
+    if (!selectedIngredient || !ingredient.weight) return 0;
+
+    const weight = parseFloat(ingredient.weight);
+    let quantity = weight;
+    if (selectedIngredient.unit === 'кг' || selectedIngredient.unit === 'л') {
+      quantity = weight / 1000;
+    }
+    return (quantity * selectedIngredient.purchase_price).toFixed(2);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="flex gap-3 items-start bg-slate-50 p-4 rounded-xl">
+      <div className="flex-1 relative" ref={dropdownRef}>
+        <label className="block text-xs font-medium text-slate-500 mb-1.5">Ингредиент</label>
+        <input
+          type="text"
+          value={selectedIngredient ? selectedIngredient.name : searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setShowDropdown(true);
+            if (!e.target.value) {
+              updateIngredient(index, 'ingredient_id', null);
+            }
+          }}
+          onFocus={() => setShowDropdown(true)}
+          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all"
+          placeholder="Начните вводить название..."
+        />
+
+        {showDropdown && filteredIngredients.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-auto">
+            {filteredIngredients.map(ing => (
+              <div
+                key={ing.id}
+                onClick={() => handleSelectIngredient(ing)}
+                className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0"
+              >
+                <div className="font-medium text-slate-900">{ing.name}</div>
+                <div className="text-xs text-slate-500">{ing.unit} • {ing.purchase_price} ₸/{ing.unit}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="w-32">
+        <label className="block text-xs font-medium text-slate-500 mb-1.5">Вес</label>
+        <div className="relative">
+          <input
+            type="number"
+            step="1"
+            value={ingredient.weight}
+            onChange={(e) => updateIngredient(index, 'weight', e.target.value)}
+            className="w-full px-4 py-2.5 pr-10 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all"
+            placeholder="60"
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">гр</span>
+        </div>
+      </div>
+
+      {selectedIngredient && ingredient.weight && (
+        <div className="w-24 pt-6">
+          <div className="text-right">
+            <div className="text-sm font-bold text-slate-900">{calculateIngredientCost()} ₸</div>
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => removeIngredient(index)}
+        className="mt-6 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
+      >
+        <X className="w-5 h-5" />
+      </button>
+    </div>
+  );
+}
+
 function SemifinishedPage() {
   const [semifinished, setSemifinished] = useState([]);
   const [ingredients, setIngredients] = useState([]);
@@ -193,115 +302,6 @@ function SemifinishedPage() {
     const matchesSearch = !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-
-  // Ingredient Row Component
-  function IngredientRow({ index, ingredient, ingredients, updateIngredient, removeIngredient }) {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [showDropdown, setShowDropdown] = useState(false);
-    const dropdownRef = useRef(null);
-
-    const selectedIngredient = ingredients.find(i => i.id === ingredient.ingredient_id);
-
-    const filteredIngredients = ingredients.filter(ing =>
-      ing.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    const handleSelectIngredient = (ing) => {
-      updateIngredient(index, 'ingredient_id', ing.id);
-      setSearchTerm('');
-      setShowDropdown(false);
-    };
-
-    const calculateIngredientCost = () => {
-      if (!selectedIngredient || !ingredient.weight) return 0;
-
-      const weight = parseFloat(ingredient.weight);
-      let quantity = weight;
-      if (selectedIngredient.unit === 'кг' || selectedIngredient.unit === 'л') {
-        quantity = weight / 1000;
-      }
-      return (quantity * selectedIngredient.purchase_price).toFixed(2);
-    };
-
-    useEffect(() => {
-      const handleClickOutside = (event) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-          setShowDropdown(false);
-        }
-      };
-
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    return (
-      <div className="flex gap-3 items-start bg-slate-50 p-4 rounded-xl">
-        <div className="flex-1 relative" ref={dropdownRef}>
-          <label className="block text-xs font-medium text-slate-500 mb-1.5">Ингредиент</label>
-          <input
-            type="text"
-            value={selectedIngredient ? selectedIngredient.name : searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setShowDropdown(true);
-              if (!e.target.value) {
-                updateIngredient(index, 'ingredient_id', null);
-              }
-            }}
-            onFocus={() => setShowDropdown(true)}
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all"
-            placeholder="Начните вводить название..."
-          />
-
-          {showDropdown && filteredIngredients.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-auto">
-              {filteredIngredients.map(ing => (
-                <div
-                  key={ing.id}
-                  onClick={() => handleSelectIngredient(ing)}
-                  className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0"
-                >
-                  <div className="font-medium text-slate-900">{ing.name}</div>
-                  <div className="text-xs text-slate-500">{ing.unit} • {ing.purchase_price} ₸/{ing.unit}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="w-32">
-          <label className="block text-xs font-medium text-slate-500 mb-1.5">Вес</label>
-          <div className="relative">
-            <input
-              type="number"
-              step="1"
-              value={ingredient.weight}
-              onChange={(e) => updateIngredient(index, 'weight', e.target.value)}
-              className="w-full px-4 py-2.5 pr-10 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all"
-              placeholder="60"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">гр</span>
-          </div>
-        </div>
-
-        {selectedIngredient && ingredient.weight && (
-          <div className="w-24 pt-6">
-            <div className="text-right">
-              <div className="text-sm font-bold text-slate-900">{calculateIngredientCost()} ₸</div>
-            </div>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={() => removeIngredient(index)}
-          className="mt-6 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-    );
-  }
 
   if (loading) {
     return (

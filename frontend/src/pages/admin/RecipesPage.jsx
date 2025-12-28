@@ -19,6 +19,7 @@ function RecipesPage() {
     price: '',
     is_weight_based: false,
     exclude_from_discounts: false,
+    show_in_pos: true,
     ingredients: []  // [{ ingredient_id, weight, cooking_method }]
   });
 
@@ -75,6 +76,7 @@ function RecipesPage() {
         price: parseFloat(formData.price),
         is_weight_based: formData.is_weight_based,
         exclude_from_discounts: formData.exclude_from_discounts,
+        show_in_pos: formData.show_in_pos,
         ingredients: formData.ingredients.map(ing => ({
           ingredient_id: ing.ingredient_id,
           gross_weight: parseFloat(ing.weight),  // В граммах
@@ -92,7 +94,7 @@ function RecipesPage() {
         toast.success('Техкарта создана');
       }
 
-      setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, ingredients: [] });
+      setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [] });
       setEditingRecipe(null);
       setShowForm(false);
       loadRecipes();
@@ -113,6 +115,7 @@ function RecipesPage() {
         price: fullRecipe.price,
         is_weight_based: fullRecipe.is_weight_based,
         exclude_from_discounts: fullRecipe.exclude_from_discounts,
+        show_in_pos: fullRecipe.show_in_pos !== undefined ? fullRecipe.show_in_pos : true,
         ingredients: fullRecipe.ingredients.map(ing => ({
           ingredient_id: ing.ingredient_id,
           weight: ing.net_weight,  // Получаем в граммах
@@ -231,7 +234,7 @@ function RecipesPage() {
           onClick={() => {
             setShowForm(!showForm);
             setEditingRecipe(null);
-            setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, ingredients: [] });
+            setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [] });
           }}
           className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl hover:bg-slate-800 font-semibold shadow-lg shadow-slate-300 transition-all active:scale-95"
         >
@@ -347,6 +350,33 @@ function RecipesPage() {
               </div>
             </div>
 
+            {/* Опции */}
+            <div className="flex gap-6 p-4 bg-slate-50 rounded-xl">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.show_in_pos}
+                  onChange={(e) => setFormData({ ...formData, show_in_pos: e.target.checked })}
+                  className="w-5 h-5 text-slate-900 rounded"
+                />
+                <label className="ml-3 text-sm font-medium text-slate-700">
+                  Показывать на кассе
+                </label>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.exclude_from_discounts}
+                  onChange={(e) => setFormData({ ...formData, exclude_from_discounts: e.target.checked })}
+                  className="w-5 h-5 text-slate-900 rounded"
+                />
+                <label className="ml-3 text-sm font-medium text-slate-700">
+                  Исключить из скидок
+                </label>
+              </div>
+            </div>
+
             {/* Состав техкарты */}
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -418,7 +448,7 @@ function RecipesPage() {
                 onClick={() => {
                   setShowForm(false);
                   setEditingRecipe(null);
-                  setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, ingredients: [] });
+                  setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [] });
                 }}
                 className="bg-slate-100 text-slate-700 px-8 py-3 rounded-xl hover:bg-slate-200 font-semibold transition-all"
               >

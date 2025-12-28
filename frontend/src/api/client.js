@@ -196,6 +196,45 @@ class ApiClient {
   async getRecipeCategories() {
     return this.request('/recipes/categories/list');
   }
+
+  // Semifinished (Полуфабрикаты)
+  async getSemifinished(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/semifinished${query ? `?${query}` : ''}`);
+  }
+
+  async getSemifinishedItem(id) {
+    return this.request(`/semifinished/${id}`);
+  }
+
+  async createSemifinished(data) {
+    return this.request('/semifinished', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateSemifinished(id, data) {
+    return this.request(`/semifinished/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSemifinished(id) {
+    return this.request(`/semifinished/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getSemifinishedCategories() {
+    return this.request('/semifinished/categories/list');
+  }
+
+  // POS (Касса - объединенный список товаров и техкарт)
+  async getPOSItems() {
+    return this.request('/pos/items');
+  }
 }
 
 export default new ApiClient();

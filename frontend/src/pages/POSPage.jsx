@@ -29,7 +29,8 @@ function POSPage() {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const data = await api.getProducts({ available_only: true });
+      // Загружаем объединённый список: Products + Recipes (где show_in_pos=true)
+      const data = await api.getPOSItems();
       setProducts(data);
     } catch (error) {
       console.error('Ошибка загрузки товаров:', error);
@@ -88,7 +89,9 @@ function POSPage() {
     try {
       const orderData = {
         items: cart.map(item => ({
-          product_id: item.id,
+          item_type: item.type || 'product',  // 'product' или 'recipe'
+          product_id: item.type === 'product' ? item.id : null,
+          recipe_id: item.type === 'recipe' ? item.id : null,
           quantity: item.quantity
         })),
         payment_method: paymentMethod

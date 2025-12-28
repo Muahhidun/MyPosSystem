@@ -35,14 +35,25 @@ class Order(Base):
         return f"<Order #{self.order_number}>"
 
 
+class ItemType(str, enum.Enum):
+    """Тип позиции в заказе"""
+    PRODUCT = "product"  # Товар (покупной)
+    RECIPE = "recipe"    # Техкарта (готовится)
+
+
 class OrderItem(Base):
     """Позиция в заказе"""
     __tablename__ = "order_items"
 
     id = Column(Integer, primary_key=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
-    product_name = Column(String, nullable=False)  # Фиксируем название
+    item_type = Column(Enum(ItemType), nullable=False, default=ItemType.PRODUCT)
+
+    # Один из этих двух полей должен быть заполнен (в зависимости от item_type)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
+    recipe_id = Column(Integer, ForeignKey("recipes.id"), nullable=True)
+
+    item_name = Column(String, nullable=False)  # Фиксируем название
     quantity = Column(Integer, nullable=False, default=1)
     price = Column(Float, nullable=False)  # Цена на момент продажи
     subtotal = Column(Float, nullable=False)  # quantity * price
@@ -50,6 +61,7 @@ class OrderItem(Base):
     # Relationships
     order = relationship("Order", backref="order_items")
     product = relationship("Product")
+    recipe = relationship("Recipe")
 
     def __repr__(self):
-        return f"<OrderItem {self.product_name} x{self.quantity}>"
+        return f"<OrderItem {self.item_name} x{self.quantity}>"

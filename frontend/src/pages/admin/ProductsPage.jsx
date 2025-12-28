@@ -10,7 +10,8 @@ function ProductsPage() {
     name: '',
     price: '',
     category: '',
-    is_available: true
+    is_available: true,
+    show_in_pos: true
   });
 
   useEffect(() => {
@@ -43,7 +44,8 @@ function ProductsPage() {
         name: formData.name,
         price: parseFloat(formData.price),
         category: formData.category || null,
-        is_available: formData.is_available
+        is_available: formData.is_available,
+        show_in_pos: formData.show_in_pos
       };
 
       if (editingProduct) {
@@ -54,7 +56,7 @@ function ProductsPage() {
         alert('Товар создан');
       }
 
-      setFormData({ name: '', price: '', category: '', is_available: true });
+      setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
       setEditingProduct(null);
       setShowForm(false);
       loadProducts();
@@ -70,7 +72,8 @@ function ProductsPage() {
       name: product.name,
       price: product.price,
       category: product.category || '',
-      is_available: product.is_available
+      is_available: product.is_available,
+      show_in_pos: product.show_in_pos !== undefined ? product.show_in_pos : true
     });
     setShowForm(true);
   };
@@ -121,7 +124,7 @@ function ProductsPage() {
           onClick={() => {
             setShowForm(!showForm);
             setEditingProduct(null);
-            setFormData({ name: '', price: '', category: '', is_available: true });
+            setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
           }}
           className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold shadow-lg"
         >
@@ -180,16 +183,30 @@ function ProductsPage() {
               />
             </div>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.is_available}
-                onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
-                className="w-5 h-5 text-blue-600 rounded"
-              />
-              <label className="ml-3 text-sm font-medium text-gray-700">
-                Доступен для продажи
-              </label>
+            <div className="space-y-3">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.is_available}
+                  onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
+                  className="w-5 h-5 text-blue-600 rounded"
+                />
+                <label className="ml-3 text-sm font-medium text-gray-700">
+                  Доступен для продажи (есть в наличии)
+                </label>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.show_in_pos}
+                  onChange={(e) => setFormData({ ...formData, show_in_pos: e.target.checked })}
+                  className="w-5 h-5 text-blue-600 rounded"
+                />
+                <label className="ml-3 text-sm font-medium text-gray-700">
+                  Показывать на кассе
+                </label>
+              </div>
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -204,7 +221,7 @@ function ProductsPage() {
                 onClick={() => {
                   setShowForm(false);
                   setEditingProduct(null);
-                  setFormData({ name: '', price: '', category: '', is_available: true });
+                  setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
                 }}
                 className="bg-gray-200 text-gray-700 px-8 py-3 rounded-lg hover:bg-gray-300 font-semibold"
               >

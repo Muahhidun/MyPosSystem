@@ -4,7 +4,7 @@ from sqlalchemy import func, desc
 from typing import List
 from datetime import datetime, date
 from ..db import get_db
-from ..models import Order, OrderItem, Product, OrderStatus
+from ..models import Order, OrderItem, Product, Recipe, OrderStatus, ItemType
 from ..schemas import OrderCreate, OrderResponse, OrderStats
 import uuid
 
@@ -21,32 +21,58 @@ def generate_order_number() -> str:
 @router.post("", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
 def create_order(order_data: OrderCreate, db: Session = Depends(get_db)):
     """Создать новый заказ"""
-    # Проверяем наличие товаров и считаем сумму
+    # Проверяем наличие товаров/техкарт и считаем сумму
     order_items_data = []
     total_amount = 0.0
 
     for item in order_data.items:
-        product = db.query(Product).filter(Product.id == item.product_id).first()
-        if not product:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Product with id {item.product_id} not found"
-            )
+        item_name = ""
+        item_price = 0.0
+        product_id = None
+        recipe_id = None
 
-        if not product.is_available:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Product '{product.name}' is not available"
-            )
+        if item.item_type == ItemType.PRODUCT:
+            # Обработка товара
+            product = db.query(Product).filter(Product.id == item.product_id).first()
+            if not product:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Product with id {item.product_id} not found"
+                )
 
-        subtotal = product.price * item.quantity
+            if not product.is_available:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Product '{product.name}' is not available"
+                )
+
+            item_name = product.name
+            item_price = product.price
+            product_id = product.id
+
+        elif item.item_type == ItemType.RECIPE:
+            # Обработка техкарты
+            recipe = db.query(Recipe).filter(Recipe.id == item.recipe_id).first()
+            if not recipe:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Recipe with id {item.recipe_id} not found"
+                )
+
+            item_name = recipe.name
+            item_price = recipe.price
+            recipe_id = recipe.id
+
+        subtotal = item_price * item.quantity
         total_amount += subtotal
 
         order_items_data.append({
-            "product_id": product.id,
-            "product_name": product.name,
+            "item_type": item.item_type,
+            "product_id": product_id,
+            "recipe_id": recipe_id,
+            "item_name": item_name,
             "quantity": item.quantity,
-            "price": product.price,
+            "price": item_price,
             "subtotal": subtotal
         })
 
@@ -123,19 +149,20 @@ def get_today_stats(db: Session = Depends(get_db)):
         if order.payment_method.value == "card"
     )
 
-    # Топ товаров
+    # Топ товаров/техкарт
     product_sales = {}
     for order in today_orders:
         for item in order.items:
-            product_name = item["product_name"]
-            if product_name not in product_sales:
-                product_sales[product_name] = {
-                    "name": product_name,
+            # Поддержка старых заказов (product_name) и новых (item_name)
+            item_name = item.get("item_name") or item.get("product_name", "Unknown")
+            if item_name not in product_sales:
+                product_sales[item_name] = {
+                    "name": item_name,
                     "quantity": 0,
                     "revenue": 0.0
                 }
-            product_sales[product_name]["quantity"] += item["quantity"]
-            product_sales[product_name]["revenue"] += item["subtotal"]
+            product_sales[item_name]["quantity"] += item["quantity"]
+            product_sales[item_name]["revenue"] += item["subtotal"]
 
     top_products = sorted(
         product_sales.values(),

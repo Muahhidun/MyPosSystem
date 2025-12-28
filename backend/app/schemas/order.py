@@ -1,20 +1,38 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 from datetime import datetime
-from ..models.order import PaymentMethod, OrderStatus
+from ..models.order import PaymentMethod, OrderStatus, ItemType
 
 
 class OrderItemBase(BaseModel):
     """Позиция в заказе"""
-    product_id: int
+    item_type: ItemType = ItemType.PRODUCT
+    product_id: Optional[int] = None
+    recipe_id: Optional[int] = None
     quantity: int = Field(..., gt=0)
+
+    @field_validator('product_id', 'recipe_id')
+    @classmethod
+    def validate_item_reference(cls, v, info):
+        """Проверка что указан либо product_id либо recipe_id"""
+        values = info.data
+        item_type = values.get('item_type')
+
+        if item_type == ItemType.PRODUCT and not values.get('product_id'):
+            raise ValueError('product_id is required for product items')
+        if item_type == ItemType.RECIPE and not values.get('recipe_id'):
+            raise ValueError('recipe_id is required for recipe items')
+
+        return v
 
 
 class OrderItemResponse(BaseModel):
     """Позиция в заказе (ответ)"""
     id: int
-    product_id: int
-    product_name: str
+    item_type: ItemType
+    product_id: Optional[int] = None
+    recipe_id: Optional[int] = None
+    item_name: str
     quantity: int
     price: float
     subtotal: float

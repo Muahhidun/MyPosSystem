@@ -2,20 +2,21 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from ..db import get_db
-from ..models import Recipe, RecipeIngredient, Ingredient
+from ..models import Recipe, RecipeIngredient, Ingredient, RecipeSemifinished, Semifinished
 from ..schemas import (
     RecipeCreate,
     RecipeUpdate,
     RecipeResponse,
     RecipeListItem,
-    RecipeIngredientResponse
+    RecipeIngredientResponse,
+    RecipeSemifinishedResponse
 )
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 
 
 def _enrich_recipe_response(recipe: Recipe, db: Session) -> dict:
-    """Обогащает данные рецепта информацией об ингредиентах"""
+    """Обогащает данные рецепта информацией об ингредиентах и полуфабрикатах"""
     recipe_dict = {
         "id": recipe.id,
         "name": recipe.name,
@@ -24,13 +25,15 @@ def _enrich_recipe_response(recipe: Recipe, db: Session) -> dict:
         "price": recipe.price,
         "is_weight_based": recipe.is_weight_based,
         "exclude_from_discounts": recipe.exclude_from_discounts,
+        "show_in_pos": recipe.show_in_pos,
         "image_url": recipe.image_url,
         "cost": recipe.cost,
         "markup_percentage": recipe.markup_percentage,
         "profit": recipe.profit,
         "created_at": recipe.created_at,
         "updated_at": recipe.updated_at,
-        "ingredients": []
+        "ingredients": [],
+        "semifinished": []
     }
 
     # Добавляем информацию об ингредиентах
@@ -48,6 +51,20 @@ def _enrich_recipe_response(recipe: Recipe, db: Session) -> dict:
                 "cooking_method": recipe_ing.cooking_method,
                 "is_cleaned": recipe_ing.is_cleaned,
                 "cost": recipe_ing.cost
+            })
+
+    # Добавляем информацию о полуфабрикатах
+    for recipe_sf in recipe.semifinished_items:
+        semifinished = db.query(Semifinished).filter(Semifinished.id == recipe_sf.semifinished_id).first()
+        if semifinished:
+            recipe_dict["semifinished"].append({
+                "id": recipe_sf.id,
+                "recipe_id": recipe_sf.recipe_id,
+                "semifinished_id": recipe_sf.semifinished_id,
+                "semifinished_name": semifinished.name,
+                "semifinished_unit": semifinished.unit,
+                "quantity": recipe_sf.quantity,
+                "cost": recipe_sf.cost
             })
 
     return recipe_dict
@@ -123,6 +140,15 @@ def create_recipe(recipe_data: RecipeCreate, db: Session = Depends(get_db)):
                 detail=f"Ингредиент с ID {ing.ingredient_id} не найден"
             )
 
+    # Проверяем что все полуфабрикаты существуют
+    for sf in recipe_data.semifinished:
+        semifinished = db.query(Semifinished).filter(Semifinished.id == sf.semifinished_id).first()
+        if not semifinished:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Полуфабрикат с ID {sf.semifinished_id} не найден"
+            )
+
     # Создаем техкарту
     recipe = Recipe(
         name=recipe_data.name,
@@ -131,6 +157,7 @@ def create_recipe(recipe_data: RecipeCreate, db: Session = Depends(get_db)):
         price=recipe_data.price,
         is_weight_based=recipe_data.is_weight_based,
         exclude_from_discounts=recipe_data.exclude_from_discounts,
+        show_in_pos=recipe_data.show_in_pos,
         image_url=recipe_data.image_url
     )
     db.add(recipe)
@@ -147,6 +174,15 @@ def create_recipe(recipe_data: RecipeCreate, db: Session = Depends(get_db)):
             is_cleaned=ing_data.is_cleaned
         )
         db.add(recipe_ingredient)
+
+    # Создаем связи с полуфабрикатами
+    for sf_data in recipe_data.semifinished:
+        recipe_semifinished = RecipeSemifinished(
+            recipe_id=recipe.id,
+            semifinished_id=sf_data.semifinished_id,
+            quantity=sf_data.quantity
+        )
+        db.add(recipe_semifinished)
 
     db.commit()
     db.refresh(recipe)
@@ -169,7 +205,7 @@ def update_recipe(
         )
 
     # Обновляем основные поля
-    update_data = recipe_data.model_dump(exclude_unset=True, exclude={'ingredients'})
+    update_data = recipe_data.model_dump(exclude_unset=True, exclude={'ingredients', 'semifinished'})
     for field, value in update_data.items():
         setattr(recipe, field, value)
 
@@ -197,6 +233,28 @@ def update_recipe(
                 is_cleaned=ing_data.is_cleaned
             )
             db.add(recipe_ingredient)
+
+    # Если переданы полуфабрикаты - обновляем состав
+    if recipe_data.semifinished is not None:
+        # Удаляем старые связи
+        db.query(RecipeSemifinished).filter(RecipeSemifinished.recipe_id == recipe_id).delete()
+
+        # Создаем новые
+        for sf_data in recipe_data.semifinished:
+            # Проверяем существование полуфабриката
+            semifinished = db.query(Semifinished).filter(Semifinished.id == sf_data.semifinished_id).first()
+            if not semifinished:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Полуфабрикат с ID {sf_data.semifinished_id} не найден"
+                )
+
+            recipe_semifinished = RecipeSemifinished(
+                recipe_id=recipe.id,
+                semifinished_id=sf_data.semifinished_id,
+                quantity=sf_data.quantity
+            )
+            db.add(recipe_semifinished)
 
     db.commit()
     db.refresh(recipe)

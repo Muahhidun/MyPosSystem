@@ -3,6 +3,27 @@ from typing import Optional, List
 from datetime import datetime
 
 
+# RecipeSemifinished schemas
+class RecipeSemifinishedBase(BaseModel):
+    semifinished_id: int = Field(..., description="ID полуфабриката")
+    quantity: float = Field(..., gt=0, description="Количество полуфабриката (гр/мл)")
+
+
+class RecipeSemifinishedCreate(RecipeSemifinishedBase):
+    pass
+
+
+class RecipeSemifinishedResponse(RecipeSemifinishedBase):
+    id: int
+    recipe_id: int
+    semifinished_name: str  # Название полуфабриката (из joined данных)
+    semifinished_unit: str  # Единица измерения
+    cost: float  # Стоимость этого полуфабриката в рецепте
+
+    class Config:
+        from_attributes = True
+
+
 # RecipeIngredient schemas
 class RecipeIngredientBase(BaseModel):
     ingredient_id: int = Field(..., description="ID ингредиента")
@@ -40,7 +61,8 @@ class RecipeBase(BaseModel):
 
 
 class RecipeCreate(RecipeBase):
-    ingredients: List[RecipeIngredientCreate] = Field(default_factory=list, description="Состав техкарты")
+    ingredients: List[RecipeIngredientCreate] = Field(default_factory=list, description="Состав техкарты (ингредиенты)")
+    semifinished: List[RecipeSemifinishedCreate] = Field(default_factory=list, description="Состав техкарты (полуфабрикаты)")
 
 
 class RecipeUpdate(BaseModel):
@@ -50,14 +72,17 @@ class RecipeUpdate(BaseModel):
     price: Optional[float] = Field(None, ge=0)
     is_weight_based: Optional[bool] = None
     exclude_from_discounts: Optional[bool] = None
+    show_in_pos: Optional[bool] = None
     image_url: Optional[str] = Field(None, max_length=500)
     ingredients: Optional[List[RecipeIngredientCreate]] = None
+    semifinished: Optional[List[RecipeSemifinishedCreate]] = None
 
 
 class RecipeResponse(RecipeBase):
     id: int
     ingredients: List[RecipeIngredientResponse] = []
-    cost: float  # Себестоимость (сумма стоимостей ингредиентов)
+    semifinished: List[RecipeSemifinishedResponse] = []
+    cost: float  # Себестоимость (сумма стоимостей ингредиентов + полуфабрикатов)
     markup_percentage: float  # Наценка %
     profit: float  # Прибыль с порции
     created_at: datetime

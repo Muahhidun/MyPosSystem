@@ -6,6 +6,7 @@ import toast, { Toaster } from 'react-hot-toast';
 function RecipesPage() {
   const [recipes, setRecipes] = useState([]);
   const [ingredients, setIngredients] = useState([]);
+  const [semifinished, setSemifinished] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -20,12 +21,14 @@ function RecipesPage() {
     is_weight_based: false,
     exclude_from_discounts: false,
     show_in_pos: true,
-    ingredients: []  // [{ ingredient_id, weight, cooking_method }]
+    ingredients: [],  // [{ id, ingredient_id, weight, cooking_method }]
+    semifinished: []  // [{ id, semifinished_id, quantity }]
   });
 
   useEffect(() => {
     loadRecipes();
     loadIngredients();
+    loadSemifinished();
     loadCategories();
   }, []);
 
@@ -51,6 +54,15 @@ function RecipesPage() {
     }
   };
 
+  const loadSemifinished = async () => {
+    try {
+      const data = await api.getSemifinished();
+      setSemifinished(data);
+    } catch (error) {
+      console.error('Ошибка загрузки полуфабрикатов:', error);
+    }
+  };
+
   const loadCategories = async () => {
     try {
       const data = await api.getRecipeCategories();
@@ -63,8 +75,8 @@ function RecipesPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.price || formData.ingredients.length === 0) {
-      toast.error('Заполните название, цену и добавьте хотя бы один ингредиент');
+    if (!formData.name || !formData.price || (formData.ingredients.length === 0 && formData.semifinished.length === 0)) {
+      toast.error('Заполните название, цену и добавьте хотя бы один ингредиент или полуфабрикат');
       return;
     }
 
@@ -83,6 +95,10 @@ function RecipesPage() {
           net_weight: parseFloat(ing.weight),    // В граммах (брутто = нетто)
           cooking_method: ing.cooking_method || null,
           is_cleaned: false
+        })),
+        semifinished: formData.semifinished.map(sf => ({
+          semifinished_id: sf.semifinished_id,
+          quantity: parseFloat(sf.quantity)  // В граммах/мл
         }))
       };
 
@@ -94,7 +110,7 @@ function RecipesPage() {
         toast.success('Техкарта создана');
       }
 
-      setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [] });
+      setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [], semifinished: [] });
       setEditingRecipe(null);
       setShowForm(false);
       loadRecipes();
@@ -116,10 +132,16 @@ function RecipesPage() {
         is_weight_based: fullRecipe.is_weight_based,
         exclude_from_discounts: fullRecipe.exclude_from_discounts,
         show_in_pos: fullRecipe.show_in_pos !== undefined ? fullRecipe.show_in_pos : true,
-        ingredients: fullRecipe.ingredients.map(ing => ({
+        ingredients: fullRecipe.ingredients.map((ing, idx) => ({
+          id: Date.now() + idx,
           ingredient_id: ing.ingredient_id,
           weight: ing.net_weight,  // Получаем в граммах
           cooking_method: ing.cooking_method || ''
+        })),
+        semifinished: (fullRecipe.semifinished || []).map((sf, idx) => ({
+          id: Date.now() + 1000 + idx,
+          semifinished_id: sf.semifinished_id,
+          quantity: sf.quantity
         }))
       });
       setShowForm(true);
@@ -149,6 +171,7 @@ function RecipesPage() {
     setFormData({
       ...formData,
       ingredients: [...formData.ingredients, {
+        id: Date.now(),
         ingredient_id: '',
         weight: '',
         cooking_method: ''
@@ -169,16 +192,48 @@ function RecipesPage() {
     setFormData({ ...formData, ingredients: updated });
   };
 
-  // Расчёт выхода (сумма весов всех ингредиентов)
-  const calculateOutputWeight = () => {
-    return formData.ingredients.reduce((sum, ing) => {
-      return sum + (parseFloat(ing.weight) || 0);
-    }, 0);
+  // Управление полуфабрикатами в форме
+  const addSemifinished = () => {
+    setFormData({
+      ...formData,
+      semifinished: [...formData.semifinished, {
+        id: Date.now(),
+        semifinished_id: '',
+        quantity: ''
+      }]
+    });
   };
 
-  // Расчёт себестоимости
+  const removeSemifinished = (index) => {
+    setFormData({
+      ...formData,
+      semifinished: formData.semifinished.filter((_, i) => i !== index)
+    });
+  };
+
+  const updateSemifinished = (index, field, value) => {
+    const updated = [...formData.semifinished];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, semifinished: updated });
+  };
+
+  // Расчёт выхода (сумма весов всех ингредиентов + полуфабрикатов)
+  const calculateOutputWeight = () => {
+    const ingredientsWeight = formData.ingredients.reduce((sum, ing) => {
+      return sum + (parseFloat(ing.weight) || 0);
+    }, 0);
+
+    const semifinishedWeight = formData.semifinished.reduce((sum, sf) => {
+      return sum + (parseFloat(sf.quantity) || 0);
+    }, 0);
+
+    return ingredientsWeight + semifinishedWeight;
+  };
+
+  // Расчёт себестоимости (ингредиенты + полуфабрикаты)
   const calculateCost = () => {
-    return formData.ingredients.reduce((sum, ing) => {
+    // Стоимость ингредиентов
+    const ingredientsCost = formData.ingredients.reduce((sum, ing) => {
       const ingredient = ingredients.find(i => i.id === parseInt(ing.ingredient_id));
       if (!ingredient || !ing.weight) return sum;
 
@@ -193,6 +248,21 @@ function RecipesPage() {
 
       return sum + (quantity * ingredient.purchase_price);
     }, 0);
+
+    // Стоимость полуфабрикатов
+    const semifinishedCost = formData.semifinished.reduce((sum, sf) => {
+      const sfItem = semifinished.find(s => s.id === parseInt(sf.semifinished_id));
+      if (!sfItem || !sf.quantity) return sum;
+
+      const quantityInGrams = parseFloat(sf.quantity);
+
+      // Цена за грамм = себестоимость / выход
+      const costPerGram = sfItem.output_quantity > 0 ? sfItem.cost / sfItem.output_quantity : 0;
+
+      return sum + (quantityInGrams * costPerGram);
+    }, 0);
+
+    return ingredientsCost + semifinishedCost;
   };
 
   const calculateMarkup = () => {
@@ -234,7 +304,7 @@ function RecipesPage() {
           onClick={() => {
             setShowForm(!showForm);
             setEditingRecipe(null);
-            setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [] });
+            setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [], semifinished: [] });
           }}
           className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl hover:bg-slate-800 font-semibold shadow-lg shadow-slate-300 transition-all active:scale-95"
         >
@@ -377,10 +447,10 @@ function RecipesPage() {
               </div>
             </div>
 
-            {/* Состав техкарты */}
+            {/* Состав техкарты - Ингредиенты */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-900">Состав</h3>
+                <h3 className="text-lg font-semibold text-slate-900">Ингредиенты (базовые продукты)</h3>
                 <button
                   type="button"
                   onClick={addIngredient}
@@ -393,13 +463,13 @@ function RecipesPage() {
               {formData.ingredients.length === 0 ? (
                 <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
                   <ChefHat className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                  <p className="text-slate-500">Добавьте ингредиенты для расчёта себестоимости</p>
+                  <p className="text-slate-500">Добавьте ингредиенты или полуфабрикаты для расчёта себестоимости</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {formData.ingredients.map((ing, index) => (
                     <IngredientRow
-                      key={index}
+                      key={ing.id || index}
                       index={index}
                       ingredient={ing}
                       ingredients={ingredients}
@@ -411,8 +481,42 @@ function RecipesPage() {
               )}
             </div>
 
+            {/* Полуфабрикаты */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-900 text-emerald-700">Полуфабрикаты</h3>
+                <button
+                  type="button"
+                  onClick={addSemifinished}
+                  className="flex items-center gap-2 text-sm bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-4 py-2 rounded-lg transition-all"
+                >
+                  <Plus className="w-4 h-4" /> Добавить полуфабрикат
+                </button>
+              </div>
+
+              {formData.semifinished.length === 0 ? (
+                <div className="text-center py-12 bg-emerald-50 rounded-xl border-2 border-dashed border-emerald-200">
+                  <ChefHat className="w-12 h-12 mx-auto mb-3 text-emerald-300" />
+                  <p className="text-emerald-600">Полуфабрикаты опциональны. Используйте для готовых смесей.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {formData.semifinished.map((sf, index) => (
+                    <SemifinishedRow
+                      key={sf.id || index}
+                      index={index}
+                      item={sf}
+                      semifinished={semifinished}
+                      updateSemifinished={updateSemifinished}
+                      removeSemifinished={removeSemifinished}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Расчёты */}
-            {formData.ingredients.length > 0 && (
+            {(formData.ingredients.length > 0 || formData.semifinished.length > 0) && (
               <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
                 <div className="flex items-center gap-2 mb-4">
                   <Calculator className="w-5 h-5 text-slate-600" />
@@ -448,7 +552,7 @@ function RecipesPage() {
                 onClick={() => {
                   setShowForm(false);
                   setEditingRecipe(null);
-                  setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [] });
+                  setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [], semifinished: [] });
                 }}
                 className="bg-slate-100 text-slate-700 px-8 py-3 rounded-xl hover:bg-slate-200 font-semibold transition-all"
               >
@@ -533,6 +637,122 @@ function RecipesPage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Компонент строки полуфабриката
+function SemifinishedRow({ index, item, semifinished, updateSemifinished, removeSemifinished }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const selectedSemifinished = semifinished.find(s => s.id === parseInt(item.semifinished_id));
+
+  const filteredSemifinished = semifinished.filter(sf =>
+    sf.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectSemifinished = (sf) => {
+    updateSemifinished(index, 'semifinished_id', sf.id);
+    setSearchTerm('');
+    setShowDropdown(false);
+  };
+
+  const calculateSemifinishedCost = () => {
+    if (!selectedSemifinished || !item.quantity) return 0;
+
+    const quantityInGrams = parseFloat(item.quantity);
+    const costPerGram = selectedSemifinished.output_quantity > 0
+      ? selectedSemifinished.cost / selectedSemifinished.output_quantity
+      : 0;
+
+    return (quantityInGrams * costPerGram).toFixed(2);
+  };
+
+  return (
+    <div className="flex gap-3 items-start bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+      <div className="flex-1 relative" ref={dropdownRef}>
+        <div className="relative">
+          <input
+            type="text"
+            value={selectedSemifinished ? selectedSemifinished.name : searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setShowDropdown(true);
+            }}
+            onFocus={() => setShowDropdown(true)}
+            placeholder="Начните вводить название полуфабриката..."
+            className="w-full px-3 py-2 pr-8 border border-emerald-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600"
+          />
+          <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-emerald-400 pointer-events-none" />
+        </div>
+
+        {showDropdown && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-emerald-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {filteredSemifinished.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-slate-500">Ничего не найдено</div>
+            ) : (
+              filteredSemifinished.map(sf => (
+                <div
+                  key={sf.id}
+                  onClick={() => handleSelectSemifinished(sf)}
+                  className="px-3 py-2 hover:bg-emerald-50 cursor-pointer text-sm border-b border-slate-100 last:border-0"
+                >
+                  <div className="font-medium text-slate-900">{sf.name}</div>
+                  <div className="text-xs text-slate-500">
+                    Выход: {sf.output_quantity} {sf.unit} • Себестоимость: {sf.cost?.toFixed(2) || 0} ₸
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="w-32">
+        <label className="text-xs text-emerald-700 mb-1 block">Количество</label>
+        <div className="relative">
+          <input
+            type="number"
+            step="1"
+            value={item.quantity}
+            onChange={(e) => updateSemifinished(index, 'quantity', e.target.value)}
+            className="w-full px-2 py-2 pr-8 border border-emerald-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-600"
+            placeholder="100"
+            required
+          />
+          <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-emerald-600 pointer-events-none">
+            {selectedSemifinished?.unit || 'гр'}
+          </span>
+        </div>
+      </div>
+
+      {selectedSemifinished && item.quantity && (
+        <div className="w-28 pt-6">
+          <div className="text-sm font-semibold text-emerald-700">
+            {calculateSemifinishedCost()} ₸
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => removeSemifinished(index)}
+        className="mt-6 p-2 text-emerald-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+      >
+        <X className="w-4 h-4" />
+      </button>
     </div>
   );
 }

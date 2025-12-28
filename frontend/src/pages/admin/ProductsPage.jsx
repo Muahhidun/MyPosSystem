@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/client';
+import { Search, Plus, X, Edit2, Trash2, ShoppingBag, MoreHorizontal } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
+import AdminLayout from '../../components/layout/AdminLayout';
 
 function ProductsPage() {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [showActionsMenu, setShowActionsMenu] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -16,6 +23,7 @@ function ProductsPage() {
 
   useEffect(() => {
     loadProducts();
+    loadCategories();
   }, []);
 
   const loadProducts = async () => {
@@ -25,17 +33,39 @@ function ProductsPage() {
       setProducts(data);
     } catch (error) {
       console.error('Ошибка загрузки товаров:', error);
-      alert('Не удалось загрузить товары');
+      toast.error('Не удалось загрузить товары');
     } finally {
       setLoading(false);
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      // Извлекаем уникальные категории из товаров
+      const data = await api.getProducts();
+      const uniqueCategories = [...new Set(data.map(p => p.category).filter(Boolean))];
+      setCategories(uniqueCategories);
+    } catch (error) {
+      console.error('Ошибка загрузки категорий:', error);
+    }
+  };
+
+  // Фильтрация товаров
+  const filteredProducts = products.filter(product => {
+    if (searchQuery && !product.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+    if (filterCategory && product.category !== filterCategory) {
+      return false;
+    }
+    return true;
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.name || !formData.price) {
-      alert('Заполните название и цену');
+      toast.error('Заполните название и цену');
       return;
     }
 
@@ -50,19 +80,20 @@ function ProductsPage() {
 
       if (editingProduct) {
         await api.updateProduct(editingProduct.id, data);
-        alert('Товар обновлен');
+        toast.success('Товар обновлён');
       } else {
         await api.createProduct(data);
-        alert('Товар создан');
+        toast.success('Товар создан');
       }
 
       setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
       setEditingProduct(null);
       setShowForm(false);
       loadProducts();
+      loadCategories();
     } catch (error) {
       console.error('Ошибка сохранения товара:', error);
-      alert('Не удалось сохранить товар');
+      toast.error('Не удалось сохранить товар');
     }
   };
 
@@ -85,11 +116,12 @@ function ProductsPage() {
 
     try {
       await api.deleteProduct(id);
-      alert('Товар удален');
+      toast.success('Товар удалён');
       loadProducts();
+      loadCategories();
     } catch (error) {
       console.error('Ошибка удаления товара:', error);
-      alert('Не удалось удалить товар');
+      toast.error('Не удалось удалить товар');
     }
   };
 
@@ -98,224 +130,317 @@ function ProductsPage() {
       await api.updateProduct(product.id, {
         is_available: !product.is_available
       });
+      toast.success(product.is_available ? 'Товар отключён' : 'Товар включён');
       loadProducts();
     } catch (error) {
       console.error('Ошибка обновления товара:', error);
-      alert('Не удалось обновить товар');
+      toast.error('Не удалось обновить товар');
     }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-2xl text-gray-600">Загрузка...</div>
-      </div>
+      <AdminLayout breadcrumbs={['Меню', 'Товары']}>
+        <div className="flex justify-center items-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      </AdminLayout>
     );
   }
 
+  // Форма создания/редактирования
+  if (showForm) {
+    return (
+      <AdminLayout breadcrumbs={['Меню', 'Товары', editingProduct ? 'Редактирование' : 'Создание']}>
+        <Toaster position="top-right" />
+
+        {/* Заголовок формы */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">
+              {editingProduct ? 'Редактировать товар' : 'Новый товар'}
+            </h1>
+            <p className="text-slate-500 mt-1">Управление меню и товарами</p>
+          </div>
+          <button
+            onClick={() => {
+              setShowForm(false);
+              setEditingProduct(null);
+              setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
+            }}
+            className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-2.5 rounded-xl hover:bg-slate-200 font-medium transition-all"
+          >
+            <X size={18} /> Отмена
+          </button>
+        </div>
+
+        {/* Форма редактирования */}
+        <form onSubmit={handleSubmit}>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b">Основная информация</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Название товара *</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
+                    placeholder="Латте"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Цена *</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      className="w-full px-4 py-2.5 pr-8 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
+                      placeholder="450"
+                      required
+                    />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm">₸</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Категория</label>
+                <input
+                  type="text"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
+                  placeholder="Напитки, Еда, Десерты..."
+                  list="categories-list"
+                />
+                <datalist id="categories-list">
+                  {categories.map(cat => (
+                    <option key={cat} value={cat} />
+                  ))}
+                </datalist>
+              </div>
+
+              <div className="flex gap-6 p-4 bg-slate-50 rounded-lg">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_available}
+                    onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
+                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  />
+                  <label className="ml-2 text-sm font-medium text-slate-700">
+                    Доступен для продажи
+                  </label>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.show_in_pos}
+                    onChange={(e) => setFormData({ ...formData, show_in_pos: e.target.checked })}
+                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  />
+                  <label className="ml-2 text-sm font-medium text-slate-700">
+                    Показывать на кассе
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t">
+                <button
+                  type="submit"
+                  className="bg-indigo-600 text-white px-8 py-2.5 rounded-lg hover:bg-indigo-700 font-medium shadow-sm transition-all active:scale-[0.98]"
+                >
+                  {editingProduct ? 'Сохранить изменения' : 'Создать товар'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingProduct(null);
+                    setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
+                  }}
+                  className="bg-slate-100 text-slate-700 px-8 py-2.5 rounded-lg hover:bg-slate-200 font-medium transition-all"
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </AdminLayout>
+    );
+  }
+
+  // Список товаров (table view)
   return (
-    <div>
+    <AdminLayout breadcrumbs={['Меню', 'Товары']}>
+      <Toaster position="top-right" />
+
+      {/* Заголовок */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Товары</h1>
-          <p className="text-gray-600 mt-1">Управление меню и товарами</p>
+          <h1 className="text-2xl font-bold text-slate-900">Товары</h1>
+          <p className="text-slate-500 mt-1">Управление меню и товарами</p>
         </div>
         <button
           onClick={() => {
-            setShowForm(!showForm);
+            setShowForm(true);
             setEditingProduct(null);
             setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
           }}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold shadow-lg"
+          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-xl hover:bg-indigo-700 font-medium shadow-sm transition-all active:scale-[0.98]"
         >
-          {showForm ? 'Отмена' : '+ Добавить товар'}
+          <Plus size={18} /> Добавить товар
         </button>
       </div>
 
-      {/* Форма создания/редактирования */}
-      {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6 border-2 border-blue-100">
-          <h2 className="text-xl font-semibold mb-4">
-            {editingProduct ? 'Редактировать товар' : 'Новый товар'}
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Название товара *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Латте"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Цена (₸) *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="450"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Категория
-              </label>
+      {/* Поиск и фильтры */}
+      <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mb-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Быстрый поиск</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 type="text"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Напитки, Еда, Десерты..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск по названию..."
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
               />
             </div>
+          </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={formData.is_available}
-                  onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
-                  className="w-5 h-5 text-blue-600 rounded"
-                />
-                <label className="ml-3 text-sm font-medium text-gray-700">
-                  Доступен для продажи (есть в наличии)
-                </label>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={formData.show_in_pos}
-                  onChange={(e) => setFormData({ ...formData, show_in_pos: e.target.checked })}
-                  className="w-5 h-5 text-blue-600 rounded"
-                />
-                <label className="ml-3 text-sm font-medium text-gray-700">
-                  Показывать на кассе
-                </label>
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <button
-                type="submit"
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 font-semibold"
-              >
-                {editingProduct ? 'Сохранить изменения' : 'Создать товар'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowForm(false);
-                  setEditingProduct(null);
-                  setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
-                }}
-                className="bg-gray-200 text-gray-700 px-8 py-3 rounded-lg hover:bg-gray-300 font-semibold"
-              >
-                Отмена
-              </button>
-            </div>
-          </form>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Категория</label>
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
+            >
+              <option value="">Все категории</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
         </div>
-      )}
+
+        {(searchQuery || filterCategory) && (
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <ShoppingBag className="w-4 h-4" />
+              <span>Найдено: <span className="font-semibold text-slate-900">{filteredProducts.length}</span> из {products.length}</span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Список товаров */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <table className="min-w-full">
-          <thead className="bg-gray-50 border-b-2">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                ID
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Название
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Категория
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Цена
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Статус
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Действия
-              </th>
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
+              <th className="px-6 py-3 text-left w-16">ID</th>
+              <th className="px-6 py-3 text-left">Название</th>
+              <th className="px-6 py-3 text-left">Категория</th>
+              <th className="px-6 py-3 text-right">Цена</th>
+              <th className="px-6 py-3 text-left">Статус</th>
+              <th className="px-6 py-3 text-right w-16"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
-            {products.map(product => (
-              <tr key={product.id} className={!product.is_available ? 'bg-gray-50' : 'hover:bg-gray-50'}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+          <tbody className="divide-y divide-slate-100">
+            {filteredProducts.map(product => (
+              <tr key={product.id} className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-slate-400">
                   #{product.id}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="font-semibold text-gray-900">{product.name}</div>
+                <td className="px-6 py-3">
+                  <div className="font-semibold text-slate-900">{product.name}</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {product.category || <span className="text-gray-400">-</span>}
+                <td className="px-6 py-3 whitespace-nowrap">
+                  {product.category ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                      {product.category}
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 text-sm">-</span>
+                  )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-lg font-bold text-gray-900">
-                    {product.price}₸
-                  </div>
+                <td className="px-6 py-3 whitespace-nowrap text-right">
+                  <div className="font-semibold text-slate-900">{product.price.toFixed(2)} ₸</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-3 whitespace-nowrap">
                   <button
                     onClick={() => handleToggleAvailable(product)}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold transition-colors ${
                       product.is_available
-                        ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                        : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                        : 'bg-red-100 text-red-700 hover:bg-red-200'
                     }`}
                   >
-                    {product.is_available ? '✓ Доступен' : '✗ Недоступен'}
+                    {product.is_available ? 'Доступен' : 'Недоступен'}
                   </button>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
+                <td className="px-6 py-3 whitespace-nowrap text-sm text-right relative">
                   <button
-                    onClick={() => handleEdit(product)}
-                    className="text-blue-600 hover:text-blue-900 font-medium"
+                    onClick={() => setShowActionsMenu(showActionsMenu === product.id ? null : product.id)}
+                    className="p-2 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
                   >
-                    Изменить
+                    <MoreHorizontal size={18} />
                   </button>
-                  <button
-                    onClick={() => handleDelete(product.id, product.name)}
-                    className="text-red-600 hover:text-red-900 font-medium"
-                  >
-                    Удалить
-                  </button>
+                  {showActionsMenu === product.id && (
+                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10">
+                      <button
+                        onClick={() => {
+                          handleEdit(product);
+                          setShowActionsMenu(null);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2"
+                      >
+                        <Edit2 size={14} /> Изменить
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleDelete(product.id, product.name);
+                          setShowActionsMenu(null);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                      >
+                        <Trash2 size={14} /> Удалить
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
 
+        {filteredProducts.length === 0 && products.length > 0 && (
+          <div className="text-center py-16 text-slate-500">
+            <Search className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+            <p className="text-lg font-medium">Ничего не найдено</p>
+            <p className="text-sm mt-2">Попробуйте изменить параметры поиска</p>
+          </div>
+        )}
+
         {products.length === 0 && (
-          <div className="text-center py-16 text-gray-500">
-            <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-            </svg>
+          <div className="text-center py-16 text-slate-500">
+            <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-slate-400" />
             <p className="text-lg font-medium">Нет товаров</p>
             <p className="text-sm mt-2">Добавьте первый товар, нажав на кнопку выше</p>
           </div>
         )}
       </div>
-    </div>
+    </AdminLayout>
   );
 }
 

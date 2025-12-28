@@ -126,8 +126,7 @@ function SemifinishedPage() {
     name: '',
     category: '',
     unit: 'гр',
-    output_quantity: '',
-    ingredients: []  // [{ ingredient_id, weight }]
+    ingredients: []  // [{ id, ingredient_id, weight }]
   });
 
   useEffect(() => {
@@ -182,10 +181,8 @@ function SemifinishedPage() {
     }
 
     try {
-      // Если выход не указан, используем сумму весов ингредиентов
-      const outputQty = formData.output_quantity
-        ? parseFloat(formData.output_quantity)
-        : calculateTotalWeight();
+      // Выход = сумма весов всех ингредиентов
+      const outputQty = calculateTotalWeight();
 
       const data = {
         name: formData.name,
@@ -206,7 +203,7 @@ function SemifinishedPage() {
         toast.success('Полуфабрикат создан');
       }
 
-      setFormData({ name: '', category: '', unit: 'гр', output_quantity: '', ingredients: [] });
+      setFormData({ name: '', category: '', unit: 'гр', ingredients: [] });
       setEditingSemifinished(null);
       setShowForm(false);
       loadSemifinished();
@@ -225,7 +222,6 @@ function SemifinishedPage() {
         name: fullItem.name,
         category: fullItem.category || '',
         unit: fullItem.unit || 'гр',
-        output_quantity: fullItem.output_quantity,
         ingredients: fullItem.ingredients.map((ing, idx) => ({
           id: Date.now() + idx,
           ingredient_id: ing.ingredient_id,
@@ -292,7 +288,7 @@ function SemifinishedPage() {
 
   const calculateCostPerUnit = () => {
     const total = calculateTotalCost();
-    const output = parseFloat(formData.output_quantity) || 0;
+    const output = calculateTotalWeight();
     if (output === 0) return 0;
     return total / output;
   };
@@ -325,7 +321,7 @@ function SemifinishedPage() {
           onClick={() => {
             setShowForm(!showForm);
             setEditingSemifinished(null);
-            setFormData({ name: '', category: '', unit: 'гр', output_quantity: '', ingredients: [] });
+            setFormData({ name: '', category: '', unit: 'гр', ingredients: [] });
           }}
           className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl hover:bg-slate-800 font-semibold shadow-lg shadow-slate-300 transition-all active:scale-95"
         >
@@ -402,17 +398,15 @@ function SemifinishedPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Выход (количество)
-                  <span className="text-xs text-slate-500 ml-2">опционально</span>
+                  Выход (количество) - автоматически
                 </label>
                 <div className="relative">
                   <input
                     type="number"
-                    step="0.01"
-                    value={formData.output_quantity}
-                    onChange={(e) => setFormData({ ...formData, output_quantity: e.target.value })}
-                    className="w-full px-4 py-2.5 pr-16 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all"
-                    placeholder={`${calculateTotalWeight()} (сумма весов)`}
+                    value={calculateTotalWeight()}
+                    readOnly
+                    className="w-full px-4 py-2.5 pr-16 border border-slate-200 rounded-xl bg-slate-50 text-slate-600 cursor-not-allowed"
+                    placeholder="0"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">{formData.unit}</span>
                 </div>
@@ -495,7 +489,7 @@ function SemifinishedPage() {
                 onClick={() => {
                   setShowForm(false);
                   setEditingSemifinished(null);
-                  setFormData({ name: '', category: '', unit: 'гр', output_quantity: '', ingredients: [] });
+                  setFormData({ name: '', category: '', unit: 'гр', ingredients: [] });
                 }}
                 className="bg-slate-100 text-slate-700 px-8 py-3 rounded-xl hover:bg-slate-200 font-semibold transition-all"
               >

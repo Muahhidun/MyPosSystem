@@ -7,6 +7,14 @@ from .ingredient import (
     IngredientResponse,
     IngredientStockUpdate
 )
+from .recipe import (
+    RecipeCreate,
+    RecipeUpdate,
+    RecipeResponse,
+    RecipeListItem,
+    RecipeIngredientCreate,
+    RecipeIngredientResponse
+)
 
 __all__ = [
     "ProductCreate",
@@ -21,5 +29,11 @@ __all__ = [
     "IngredientCreate",
     "IngredientUpdate",
     "IngredientResponse",
-    "IngredientStockUpdate"
+    "IngredientStockUpdate",
+    "RecipeCreate",
+    "RecipeUpdate",
+    "RecipeResponse",
+    "RecipeListItem",
+    "RecipeIngredientCreate",
+    "RecipeIngredientResponse"
 ]

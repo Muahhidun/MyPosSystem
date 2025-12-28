@@ -6,7 +6,7 @@ from datetime import datetime
 # RecipeSemifinished schemas
 class RecipeSemifinishedBase(BaseModel):
     semifinished_id: int = Field(..., description="ID полуфабриката")
-    quantity: float = Field(..., gt=0, description="Количество полуфабриката (гр/мл)")
+    quantity: float = Field(..., ge=0, description="Количество полуфабриката (гр/мл)")
 
 
 class RecipeSemifinishedCreate(RecipeSemifinishedBase):
@@ -27,8 +27,8 @@ class RecipeSemifinishedResponse(RecipeSemifinishedBase):
 # RecipeIngredient schemas
 class RecipeIngredientBase(BaseModel):
     ingredient_id: int = Field(..., description="ID ингредиента")
-    gross_weight: float = Field(..., gt=0, description="Брутто (вес до обработки)")
-    net_weight: float = Field(..., gt=0, description="Нетто (вес в готовом блюде)")
+    gross_weight: float = Field(..., ge=0, description="Брутто (вес до обработки)")
+    net_weight: float = Field(..., ge=0, description="Нетто (вес в готовом блюде)")
     cooking_method: Optional[str] = Field(None, max_length=200, description="Метод приготовления")
     is_cleaned: bool = Field(False, description="Требуется очистка")
 

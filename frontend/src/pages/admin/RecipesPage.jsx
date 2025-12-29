@@ -678,7 +678,7 @@ function RecipesPage() {
                     <MoreHorizontal size={18} />
                   </button>
                   {showActionsMenu === recipe.id && (
-                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                    <div className="absolute right-full mr-2 top-0 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
                       <button
                         onClick={() => {
                           handleEdit(recipe);

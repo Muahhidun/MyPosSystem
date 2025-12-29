@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import List, Optional
 from datetime import datetime
 from ..models.order import PaymentMethod, OrderStatus, ItemType
@@ -11,19 +11,15 @@ class OrderItemBase(BaseModel):
     recipe_id: Optional[int] = None
     quantity: int = Field(..., gt=0)
 
-    @field_validator('product_id', 'recipe_id')
-    @classmethod
-    def validate_item_reference(cls, v, info):
+    @model_validator(mode='after')
+    def validate_item_reference(self):
         """Проверка что указан либо product_id либо recipe_id"""
-        values = info.data
-        item_type = values.get('item_type')
-
-        if item_type == ItemType.PRODUCT and not values.get('product_id'):
+        if self.item_type == ItemType.PRODUCT and not self.product_id:
             raise ValueError('product_id is required for product items')
-        if item_type == ItemType.RECIPE and not values.get('recipe_id'):
+        if self.item_type == ItemType.RECIPE and not self.recipe_id:
             raise ValueError('recipe_id is required for recipe items')
 
-        return v
+        return self
 
 
 class OrderItemResponse(BaseModel):

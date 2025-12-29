@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../../api/client';
-import { Search, Plus, X, Edit2, Trash2, ChefHat, Calculator, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, X, Edit2, Trash2, ChefHat, Calculator, ChevronDown, MoreHorizontal, Eye, EyeOff } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import AdminLayout from '../../components/layout/AdminLayout';
 
@@ -169,6 +169,35 @@ function RecipesPage() {
     } catch (error) {
       console.error('Ошибка удаления техкарты:', error);
       toast.error('Не удалось удалить техкарту');
+    }
+  };
+
+  const handleToggleShowInPos = async (recipe) => {
+    const newShowInPos = !recipe.show_in_pos;
+    const action = newShowInPos ? 'показывается' : 'скрыта';
+
+    try {
+      await api.updateRecipe(recipe.id, {
+        ...recipe,
+        show_in_pos: newShowInPos,
+        // Преобразуем ingredients и semifinished в нужный формат
+        ingredients: recipe.ingredients.map(ing => ({
+          ingredient_id: ing.ingredient_id,
+          gross_weight: ing.gross_weight,
+          net_weight: ing.net_weight,
+          cooking_method: ing.cooking_method,
+          is_cleaned: ing.is_cleaned
+        })),
+        semifinished: recipe.semifinished_items?.map(sf => ({
+          semifinished_id: sf.semifinished_id,
+          quantity: sf.quantity
+        })) || []
+      });
+      toast.success(`Техкарта "${recipe.name}" ${action} на кассе`);
+      loadRecipes();
+    } catch (error) {
+      console.error('Ошибка обновления техкарты:', error);
+      toast.error('Не удалось обновить техкарту');
     }
   };
 
@@ -678,7 +707,7 @@ function RecipesPage() {
                     <MoreHorizontal size={18} />
                   </button>
                   {showActionsMenu === recipe.id && (
-                    <div className="absolute right-full mr-2 bottom-0 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                    <div className="absolute right-full mr-2 bottom-0 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
                       <button
                         onClick={() => {
                           handleEdit(recipe);
@@ -687,6 +716,19 @@ function RecipesPage() {
                         className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2"
                       >
                         <Edit2 size={14} /> Изменить
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleToggleShowInPos(recipe);
+                          setShowActionsMenu(null);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2"
+                      >
+                        {recipe.show_in_pos ? (
+                          <><EyeOff size={14} /> Скрыть с кассы</>
+                        ) : (
+                          <><Eye size={14} /> Показать на кассе</>
+                        )}
                       </button>
                       <button
                         onClick={() => {

@@ -18,7 +18,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="My POS System API",
     description="API для системы учета общепита",
-    version="1.0.0"
+    version="1.0.1"  # Bug fixes: validation & frontend fixes
 )
 
 # CORS для доступа из frontend

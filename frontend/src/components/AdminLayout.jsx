@@ -1,11 +1,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ChefHat, ScrollText, Settings, Package } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ChefHat, ScrollText, Settings, Package, Cookie } from 'lucide-react';
 
 const AdminLayout = ({ children, title }) => {
   const navItems = [
     { icon: <ShoppingBag size={20} />, label: 'Товары', path: '/admin' },
     { icon: <Package size={20} />, label: 'Ингредиенты', path: '/admin/ingredients' },
+    { icon: <Cookie size={20} />, label: 'Полуфабрикаты', path: '/admin/semifinished' },
     { icon: <ScrollText size={20} />, label: 'Техкарты', path: '/admin/recipes' },
     { icon: <Settings size={20} />, label: 'Настройки', path: '/admin/settings' },
   ];

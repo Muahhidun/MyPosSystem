@@ -492,7 +492,7 @@ function RecipesPage() {
                     type="button"
                     onClick={addSemifinished}
                     variant="secondary"
-                    className="h-8 px-3 text-xs bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                    className="h-8 px-3 text-xs"
                   >
                     <Plus size={14} /> Добавить
                   </Button>
@@ -524,7 +524,7 @@ function RecipesPage() {
             {/* Правая колонка (1/3) - Расчёты и действия */}
             <div className="space-y-6">
               {/* Расчёты */}
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-sm border border-green-200 p-6 sticky top-6">
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-sm border border-green-200 p-6">
                 <h3 className="text-sm font-semibold text-green-900 mb-4 flex items-center gap-2">
                   <Calculator size={16} />
                   Расчёт себестоимости
@@ -672,7 +672,7 @@ function RecipesPage() {
                     <MoreHorizontal size={18} />
                   </button>
                   {showActionsMenu === recipe.id && (
-                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                       <button
                         onClick={() => {
                           handleEdit(recipe);

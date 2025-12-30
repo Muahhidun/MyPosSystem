@@ -772,7 +772,7 @@ function SemifinishedRow({ index, item, semifinished, updateSemifinished, remove
   };
 
   return (
-    <div className="flex gap-3 items-start bg-green-50 p-4 rounded-xl border border-green-200">
+    <div className="flex gap-3 items-center bg-green-50 p-4 rounded-xl border border-green-200">
       <div className="flex-1 relative" ref={dropdownRef}>
         <div className="relative">
           <input
@@ -812,7 +812,6 @@ function SemifinishedRow({ index, item, semifinished, updateSemifinished, remove
       </div>
 
       <div className="w-32">
-        <label className="text-xs text-green-700 mb-1 block">Количество</label>
         <div className="relative">
           <input
             type="number"
@@ -830,7 +829,7 @@ function SemifinishedRow({ index, item, semifinished, updateSemifinished, remove
       </div>
 
       {selectedSemifinished && item.quantity && (
-        <div className="w-28 pt-6">
+        <div className="w-28 flex items-center">
           <div className="text-sm font-semibold text-green-700">
             {calculateSemifinishedCost()} ₸
           </div>
@@ -840,7 +839,7 @@ function SemifinishedRow({ index, item, semifinished, updateSemifinished, remove
       <button
         type="button"
         onClick={() => removeSemifinished(index)}
-        className="mt-6 p-2 text-green-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+        className="p-2 text-green-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all h-10 flex items-center justify-center"
       >
         <X className="w-4 h-4" />
       </button>
@@ -893,7 +892,7 @@ function IngredientRow({ index, ingredient, ingredients, updateIngredient, remov
   };
 
   return (
-    <div className="flex gap-3 items-start bg-gray-50 p-4 rounded-xl border border-gray-200">
+    <div className="flex gap-3 items-center bg-gray-50 p-4 rounded-xl border border-gray-200">
       {/* Выбор ингредиента с поиском */}
       <div className="flex-1 relative" ref={dropdownRef}>
         <div className="relative">
@@ -934,7 +933,6 @@ function IngredientRow({ index, ingredient, ingredients, updateIngredient, remov
 
       {/* Вес в граммах */}
       <div className="w-32">
-        <label className="text-xs text-gray-500 mb-1 block">Вес</label>
         <div className="relative">
           <input
             type="number"
@@ -953,7 +951,7 @@ function IngredientRow({ index, ingredient, ingredients, updateIngredient, remov
 
       {/* Стоимость (расчётное) */}
       {selectedIngredient && ingredient.weight && (
-        <div className="w-28 pt-6">
+        <div className="w-28 flex items-center">
           <div className="text-sm font-semibold text-gray-900">
             {calculateIngredientCost()} ₸
           </div>
@@ -964,7 +962,7 @@ function IngredientRow({ index, ingredient, ingredients, updateIngredient, remov
       <button
         type="button"
         onClick={() => removeIngredient(index)}
-        className="mt-6 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all h-10 flex items-center justify-center"
       >
         <X className="w-4 h-4" />
       </button>

@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/client.js';
 import ReceiptPrinter from '../../utils/receiptPrinter.js';
 import LabelPrinter from '../../utils/labelPrinter.js';
+import AdminLayout from '../../components/AdminLayout';
+import { Input } from '../../components/ui/Input';
+import { Button } from '../../components/ui/Button';
+import { Printer, Building2, Phone, HelpCircle, CheckCircle, AlertCircle } from 'lucide-react';
 
 function SettingsPage() {
   const [settings, setSettings] = useState({
@@ -49,11 +53,11 @@ function SettingsPage() {
 
     try {
       await apiClient.updateSettings(settings);
-      setMessage('Настройки сохранены успешно!');
+      setMessage('success:Настройки сохранены успешно!');
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Ошибка сохранения:', error);
-      setMessage('Ошибка сохранения настроек');
+      setMessage('error:Ошибка сохранения настроек');
     } finally {
       setSaving(false);
     }
@@ -61,7 +65,7 @@ function SettingsPage() {
 
   const handleTestReceipt = async () => {
     if (!settings.receipt_printer_ip) {
-      alert('Укажите IP адрес принтера чеков');
+      setMessage('error:Укажите IP адрес принтера чеков');
       return;
     }
 
@@ -70,12 +74,12 @@ function SettingsPage() {
       const printer = new ReceiptPrinter(settings.receipt_printer_ip);
       const result = await printer.printTest();
       if (result.success) {
-        alert('Тестовый чек отправлен на печать!');
+        setMessage('success:Тестовый чек отправлен на печать!');
       } else {
-        alert('Ошибка печати: ' + result.error);
+        setMessage('error:Ошибка печати: ' + result.error);
       }
     } catch (error) {
-      alert('Ошибка печати: ' + error.message);
+      setMessage('error:Ошибка печати: ' + error.message);
     } finally {
       setTestingReceipt(false);
     }
@@ -83,7 +87,7 @@ function SettingsPage() {
 
   const handleTestLabel = async () => {
     if (!settings.label_printer_ip) {
-      alert('Укажите IP адрес принтера бегунков');
+      setMessage('error:Укажите IP адрес принтера бегунков');
       return;
     }
 
@@ -92,12 +96,12 @@ function SettingsPage() {
       const printer = new LabelPrinter(settings.label_printer_ip);
       const result = await printer.printTest();
       if (result.success) {
-        alert('Тестовый бегунок отправлен на печать!');
+        setMessage('success:Тестовый бегунок отправлен на печать!');
       } else {
-        alert('Ошибка печати: ' + result.error);
+        setMessage('error:Ошибка печати: ' + result.error);
       }
     } catch (error) {
-      alert('Ошибка печати: ' + error.message);
+      setMessage('error:Ошибка печати: ' + error.message);
     } finally {
       setTestingLabel(false);
     }
@@ -105,159 +109,183 @@ function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-gray-600">Загрузка...</div>
-      </div>
+      <AdminLayout title="Настройки">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-gray-600">Загрузка...</div>
+        </div>
+      </AdminLayout>
     );
   }
 
+  const [messageType, messageText] = message.split(':');
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Настройки системы</h1>
+    <AdminLayout title="Настройки">
+      <div className="max-w-4xl">
 
-      {message && (
-        <div
-          className={`mb-4 p-4 rounded ${
-            message.includes('Ошибка')
-              ? 'bg-red-100 text-red-700'
-              : 'bg-green-100 text-green-700'
-          }`}
-        >
-          {message}
-        </div>
-      )}
+        {message && (
+          <div
+            className={`mb-6 p-4 rounded-lg border flex items-start gap-3 ${
+              messageType === 'error'
+                ? 'bg-red-50 border-red-200 text-red-700'
+                : 'bg-green-50 border-green-200 text-green-700'
+            }`}
+          >
+            {messageType === 'error' ? (
+              <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+            ) : (
+              <CheckCircle size={20} className="flex-shrink-0 mt-0.5" />
+            )}
+            <span className="text-sm font-medium">{messageText}</span>
+          </div>
+        )}
 
-      <form onSubmit={handleSave} className="space-y-6">
-        {/* Информация о бизнесе */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Информация о заведении</h2>
+        <form onSubmit={handleSave} className="space-y-6">
+          {/* Информация о заведении */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                <Building2 size={20} className="text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Информация о заведении</h2>
+                <p className="text-xs text-gray-500">Отображается в чеках и на кассе</p>
+              </div>
+            </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Название заведения
-              </label>
-              <input
+            <div className="grid gap-5">
+              <Input
+                label="Название заведения"
                 type="text"
                 name="business_name"
                 value={settings.business_name}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="My POS System"
               />
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Телефон (для чеков)
-              </label>
-              <input
+              <Input
+                label="Телефон"
                 type="text"
                 name="phone"
                 value={settings.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="+7 (777) 123-45-67"
               />
             </div>
           </div>
-        </div>
 
-        {/* Настройки принтеров */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Принтеры</h2>
-
-          <div className="space-y-6">
-            {/* Принтер чеков */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Принтер чеков (Xprinter XP-T80Q)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  name="receipt_printer_ip"
-                  value={settings.receipt_printer_ip}
-                  onChange={handleChange}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="192.168.1.100"
-                />
-                <button
-                  type="button"
-                  onClick={handleTestReceipt}
-                  disabled={testingReceipt || !settings.receipt_printer_ip}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {testingReceipt ? 'Печать...' : 'Тест'}
-                </button>
+          {/* Настройки принтеров */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                <Printer size={20} className="text-purple-600" />
               </div>
-              <p className="text-sm text-gray-500 mt-1">
-                IP адрес принтера для чеков (80мм, WiFi)
-              </p>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Принтеры</h2>
+                <p className="text-xs text-gray-500">Настройка принтеров для печати чеков и бегунков</p>
+              </div>
             </div>
 
-            {/* Принтер бегунков */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Принтер бегунков (Xprinter XP-365B)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  name="label_printer_ip"
-                  value={settings.label_printer_ip}
-                  onChange={handleChange}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="192.168.1.101"
-                />
-                <button
-                  type="button"
-                  onClick={handleTestLabel}
-                  disabled={testingLabel || !settings.label_printer_ip}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {testingLabel ? 'Печать...' : 'Тест'}
-                </button>
+            <div className="space-y-6">
+              {/* Принтер чеков */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  Принтер чеков (Xprinter XP-T80Q)
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    name="receipt_printer_ip"
+                    value={settings.receipt_printer_ip}
+                    onChange={handleChange}
+                    placeholder="192.168.1.100"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleTestReceipt}
+                    disabled={testingReceipt || !settings.receipt_printer_ip}
+                    className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                  >
+                    {testingReceipt ? 'Печать...' : 'Тест'}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1.5">
+                  IP адрес принтера для чеков (80мм, WiFi)
+                </p>
               </div>
-              <p className="text-sm text-gray-500 mt-1">
-                IP адрес принтера для кухонных бегунков (58мм, этикетки)
-              </p>
+
+              {/* Принтер бегунков */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  Принтер бегунков (Xprinter XP-365B)
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    name="label_printer_ip"
+                    value={settings.label_printer_ip}
+                    onChange={handleChange}
+                    placeholder="192.168.1.101"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleTestLabel}
+                    disabled={testingLabel || !settings.label_printer_ip}
+                    className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                  >
+                    {testingLabel ? 'Печать...' : 'Тест'}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1.5">
+                  IP адрес принтера для кухонных бегунков (58мм, этикетки)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Кнопка сохранения */}
+          <div className="flex justify-end gap-3">
+            <Button
+              type="submit"
+              disabled={saving}
+              className="w-full sm:w-auto"
+            >
+              {saving ? 'Сохранение...' : 'Сохранить настройки'}
+            </Button>
+          </div>
+        </form>
+
+        {/* Подсказки */}
+        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-6">
+          <div className="flex items-start gap-3">
+            <HelpCircle size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-blue-900 mb-2">
+                Как узнать IP адрес принтера?
+              </h3>
+              <ul className="text-sm text-blue-800 space-y-2">
+                <li className="flex gap-2">
+                  <span className="text-blue-400">•</span>
+                  <span><strong>Xprinter XP-T80Q (WiFi):</strong> Напечатайте тестовую страницу, удерживая кнопку FEED при включении</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-blue-400">•</span>
+                  <span><strong>Xprinter XP-365B (USB):</strong> Подключите через USB-Ethernet адаптер или принт-сервер</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-blue-400">•</span>
+                  <span>Проверьте настройки роутера в разделе подключенных устройств</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
-
-        {/* Кнопка сохранения */}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold"
-          >
-            {saving ? 'Сохранение...' : 'Сохранить настройки'}
-          </button>
-        </div>
-      </form>
-
-      {/* Подсказки */}
-      <div className="mt-8 bg-blue-50 p-6 rounded-lg">
-        <h3 className="font-semibold text-blue-900 mb-2">
-          Как узнать IP адрес принтера?
-        </h3>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li>
-            • Xprinter XP-T80Q (WiFi): Напечатайте тестовую страницу, удерживая
-            кнопку FEED при включении
-          </li>
-          <li>
-            • Xprinter XP-365B (USB): Подключите через USB-Ethernet адаптер или
-            принт-сервер
-          </li>
-          <li>
-            • Проверьте настройки роутера в разделе подключенных устройств
-          </li>
-        </ul>
       </div>
-    </div>
+    </AdminLayout>
   );
 }
 

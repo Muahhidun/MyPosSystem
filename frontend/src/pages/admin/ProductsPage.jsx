@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/client';
-import { Search, Plus, X, Edit2, Trash2, ShoppingBag, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, X, Edit2, Trash2, ShoppingBag, MoreHorizontal, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import AdminLayout from '../../components/layout/AdminLayout';
+import AdminLayout from '../../components/AdminLayout';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Button } from '../../components/ui/Button';
 
 function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -41,7 +44,6 @@ function ProductsPage() {
 
   const loadCategories = async () => {
     try {
-      // Извлекаем уникальные категории из товаров
       const data = await api.getProducts();
       const uniqueCategories = [...new Set(data.map(p => p.category).filter(Boolean))];
       setCategories(uniqueCategories);
@@ -50,7 +52,6 @@ function ProductsPage() {
     }
   };
 
-  // Фильтрация товаров
   const filteredProducts = products.filter(product => {
     if (searchQuery && !product.name.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
@@ -140,9 +141,9 @@ function ProductsPage() {
 
   if (loading) {
     return (
-      <AdminLayout breadcrumbs={['Меню', 'Товары']}>
-        <div className="flex justify-center items-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <AdminLayout title="Товары">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       </AdminLayout>
     );
@@ -151,260 +152,223 @@ function ProductsPage() {
   // Форма создания/редактирования
   if (showForm) {
     return (
-      <AdminLayout breadcrumbs={['Меню', 'Товары', editingProduct ? 'Редактирование' : 'Создание']}>
+      <AdminLayout title={editingProduct ? 'Редактирование товара' : 'Новый товар'}>
         <Toaster position="top-right" />
 
-        {/* Заголовок формы */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              {editingProduct ? 'Редактировать товар' : 'Новый товар'}
-            </h1>
-            <p className="text-slate-500 mt-1">Управление меню и товарами</p>
-          </div>
+        <div className="max-w-2xl">
           <button
             onClick={() => {
               setShowForm(false);
               setEditingProduct(null);
               setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
             }}
-            className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-2.5 rounded-xl hover:bg-slate-200 font-medium transition-all"
+            className="flex items-center text-gray-500 hover:text-gray-900 mb-6 transition-colors"
           >
-            <X size={18} /> Отмена
+            <ArrowLeft size={18} className="mr-1" />
+            Назад к списку
           </button>
-        </div>
 
-        {/* Форма редактирования */}
-        <form onSubmit={handleSubmit}>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b">Основная информация</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Название товара *</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
-                    placeholder="Латте"
-                    required
-                  />
-                </div>
+          <form onSubmit={handleSubmit}>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-5">Основная информация</h3>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Цена *</label>
-                  <div className="relative">
+              <div className="space-y-5">
+                <Input
+                  label="Название товара"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Латте"
+                  required
+                />
+
+                <div className="grid grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Цена (₸)
+                    </label>
                     <input
                       type="number"
                       step="0.01"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      className="w-full px-4 py-2.5 pr-8 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
+                      className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       placeholder="450"
                       required
                     />
-                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm">₸</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Категория
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      placeholder="Напитки..."
+                      list="categories-list"
+                    />
+                    <datalist id="categories-list">
+                      {categories.map(cat => (
+                        <option key={cat} value={cat} />
+                      ))}
+                    </datalist>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Категория</label>
-                <input
-                  type="text"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
-                  placeholder="Напитки, Еда, Десерты..."
-                  list="categories-list"
-                />
-                <datalist id="categories-list">
-                  {categories.map(cat => (
-                    <option key={cat} value={cat} />
-                  ))}
-                </datalist>
-              </div>
-
-              <div className="flex gap-6 p-4 bg-slate-50 rounded-lg">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_available}
-                    onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
-                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                  />
-                  <label className="ml-2 text-sm font-medium text-slate-700">
-                    Доступен для продажи
+                <div className="pt-4">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                    Настройки
                   </label>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_available}
+                        onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">Доступен для продажи</span>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.show_in_pos}
+                        onChange={(e) => setFormData({ ...formData, show_in_pos: e.target.checked })}
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">Показывать на кассе</span>
+                    </label>
+                  </div>
                 </div>
 
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.show_in_pos}
-                    onChange={(e) => setFormData({ ...formData, show_in_pos: e.target.checked })}
-                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                  />
-                  <label className="ml-2 text-sm font-medium text-slate-700">
-                    Показывать на кассе
-                  </label>
+                <div className="flex gap-3 pt-4 border-t border-gray-100">
+                  <Button type="submit" className="flex-1">
+                    {editingProduct ? 'Сохранить изменения' : 'Создать товар'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setShowForm(false);
+                      setEditingProduct(null);
+                      setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
+                    }}
+                  >
+                    Отмена
+                  </Button>
                 </div>
-              </div>
-
-              <div className="flex gap-3 pt-4 border-t">
-                <button
-                  type="submit"
-                  className="bg-indigo-600 text-white px-8 py-2.5 rounded-lg hover:bg-indigo-700 font-medium shadow-sm transition-all active:scale-[0.98]"
-                >
-                  {editingProduct ? 'Сохранить изменения' : 'Создать товар'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowForm(false);
-                    setEditingProduct(null);
-                    setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
-                  }}
-                  className="bg-slate-100 text-slate-700 px-8 py-2.5 rounded-lg hover:bg-slate-200 font-medium transition-all"
-                >
-                  Отмена
-                </button>
               </div>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
       </AdminLayout>
     );
   }
 
   // Список товаров (table view)
   return (
-    <AdminLayout breadcrumbs={['Меню', 'Товары']}>
+    <AdminLayout title="Товары">
       <Toaster position="top-right" />
 
-      {/* Заголовок */}
-      <div className="flex justify-between items-center mb-6">
+      {/* Заголовок и кнопка */}
+      <div className="flex justify-between items-end mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Товары</h1>
-          <p className="text-slate-500 mt-1">Управление меню и товарами</p>
+          <p className="text-gray-500">Управление меню и товарами</p>
         </div>
-        <button
+        <Button
           onClick={() => {
             setShowForm(true);
             setEditingProduct(null);
             setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
           }}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-xl hover:bg-indigo-700 font-medium shadow-sm transition-all active:scale-[0.98]"
         >
           <Plus size={18} /> Добавить товар
-        </button>
+        </Button>
       </div>
 
       {/* Поиск и фильтры */}
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mb-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Быстрый поиск</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Поиск по названию..."
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Категория</label>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
-            >
-              <option value="">Все категории</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
+      <div className="bg-white p-4 rounded-t-xl border border-gray-200 border-b-0 grid grid-cols-12 gap-4 items-center">
+        <div className="col-span-8 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Input placeholder="Поиск по названию..." className="pl-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
-
-        {(searchQuery || filterCategory) && (
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <ShoppingBag className="w-4 h-4" />
-              <span>Найдено: <span className="font-semibold text-slate-900">{filteredProducts.length}</span> из {products.length}</span>
-            </div>
-          </div>
-        )}
+        <div className="col-span-4">
+          <Select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+            <option value="">Все категории</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </Select>
+        </div>
       </div>
 
-      {/* Список товаров */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-visible">
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
+      {/* Таблица товаров */}
+      <div className="bg-white border border-gray-200 rounded-b-xl overflow-hidden shadow-sm">
+        <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
-              <th className="px-6 py-3 text-left w-16">ID</th>
-              <th className="px-6 py-3 text-left">Название</th>
-              <th className="px-6 py-3 text-left">Категория</th>
+            <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
+              <th className="px-6 py-3 w-16">ID</th>
+              <th className="px-6 py-3">Название</th>
+              <th className="px-6 py-3">Категория</th>
               <th className="px-6 py-3 text-right">Цена</th>
-              <th className="px-6 py-3 text-left">Статус</th>
-              <th className="px-6 py-3 text-right w-16"></th>
+              <th className="px-6 py-3">Статус</th>
+              <th className="px-6 py-3 text-center w-16">POS</th>
+              <th className="px-6 py-3 w-16"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-gray-100">
             {filteredProducts.map(product => (
-              <tr key={product.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-slate-400">
-                  #{product.id}
-                </td>
+              <tr key={product.id} className="hover:bg-gray-50 transition-colors group">
+                <td className="px-6 py-3 text-gray-400 text-sm">#{product.id}</td>
+                <td className="px-6 py-3 font-medium text-gray-900">{product.name}</td>
                 <td className="px-6 py-3">
-                  <div className="font-semibold text-slate-900">{product.name}</div>
-                </td>
-                <td className="px-6 py-3 whitespace-nowrap">
                   {product.category ? (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                       {product.category}
                     </span>
                   ) : (
-                    <span className="text-slate-400 text-sm">-</span>
+                    <span className="text-gray-400 text-sm">-</span>
                   )}
                 </td>
-                <td className="px-6 py-3 whitespace-nowrap text-right">
-                  <div className="font-semibold text-slate-900">{product.price.toFixed(2)} ₸</div>
-                </td>
-                <td className="px-6 py-3 whitespace-nowrap">
+                <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">{product.price.toFixed(2)} ₸</td>
+                <td className="px-6 py-3">
                   <button
                     onClick={() => handleToggleAvailable(product)}
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold transition-colors ${
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
                       product.is_available
-                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
                         : 'bg-red-100 text-red-700 hover:bg-red-200'
                     }`}
                   >
                     {product.is_available ? 'Доступен' : 'Недоступен'}
                   </button>
                 </td>
-                <td className="px-6 py-3 whitespace-nowrap text-sm text-right relative">
+                <td className="px-6 py-3 text-center">
+                  {product.show_in_pos ? (
+                    <Eye size={16} className="inline text-green-600" />
+                  ) : (
+                    <EyeOff size={16} className="inline text-gray-400" />
+                  )}
+                </td>
+                <td className="px-6 py-3 text-right relative">
                   <button
                     onClick={() => setShowActionsMenu(showActionsMenu === product.id ? null : product.id)}
-                    className="p-2 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                   >
                     <MoreHorizontal size={18} />
                   </button>
                   {showActionsMenu === product.id && (
-                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                       <button
                         onClick={() => {
                           handleEdit(product);
                           setShowActionsMenu(null);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
                       >
                         <Edit2 size={14} /> Изменить
                       </button>
@@ -413,7 +377,7 @@ function ProductsPage() {
                           handleDelete(product.id, product.name);
                           setShowActionsMenu(null);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
                       >
                         <Trash2 size={14} /> Удалить
                       </button>
@@ -424,19 +388,18 @@ function ProductsPage() {
             ))}
           </tbody>
         </table>
-        </div>
 
         {filteredProducts.length === 0 && products.length > 0 && (
-          <div className="text-center py-16 text-slate-500">
-            <Search className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+          <div className="text-center py-16 text-gray-500">
+            <Search className="w-16 h-16 mx-auto mb-4 text-gray-400" />
             <p className="text-lg font-medium">Ничего не найдено</p>
             <p className="text-sm mt-2">Попробуйте изменить параметры поиска</p>
           </div>
         )}
 
         {products.length === 0 && (
-          <div className="text-center py-16 text-slate-500">
-            <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+          <div className="text-center py-16 text-gray-500">
+            <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-gray-400" />
             <p className="text-lg font-medium">Нет товаров</p>
             <p className="text-sm mt-2">Добавьте первый товар, нажав на кнопку выше</p>
           </div>

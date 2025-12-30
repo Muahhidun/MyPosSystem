@@ -47,8 +47,8 @@ function POSPage() {
 
   const loadCategories = async () => {
     try {
-      const data = await api.getCategories();
-      setCategories(['all', ...data]);
+      const data = await api.getPOSCategories();
+      setCategories([{ id: 'all', name: 'Все товары' }, ...data]);
     } catch (error) {
       console.error('Ошибка загрузки категорий:', error);
     }
@@ -152,7 +152,7 @@ function POSPage() {
 
   const filteredProducts = selectedCategory === 'all'
     ? products
-    : products.filter(p => p.category === selectedCategory);
+    : products.filter(p => p.category_id === selectedCategory);
 
   if (loading) {
     return (
@@ -204,15 +204,16 @@ function POSPage() {
           <div className="mb-3 flex gap-2 overflow-x-auto pb-2">
             {categories.map(cat => (
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
                 className={`h-9 px-3 rounded-lg whitespace-nowrap font-bold text-sm transition-all active:scale-95 ${
-                  selectedCategory === cat
+                  selectedCategory === cat.id
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-200'
                 }`}
+                style={cat.color && selectedCategory === cat.id ? { backgroundColor: cat.color } : {}}
               >
-                {cat === 'all' ? 'Все товары' : cat}
+                {cat.name}
               </button>
             ))}
           </div>
@@ -235,9 +236,9 @@ function POSPage() {
                 </div>
                 <h3 className="font-semibold text-sm mb-1 text-gray-900 line-clamp-2 min-h-8">{product.name}</h3>
                 <p className="text-lg font-bold text-blue-600">{product.price}₸</p>
-                {product.category && (
+                {(product.category_name || product.category) && (
                   <span className="inline-block mt-1 text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">
-                    {product.category}
+                    {product.category_name || product.category}
                   </span>
                 )}
               </button>

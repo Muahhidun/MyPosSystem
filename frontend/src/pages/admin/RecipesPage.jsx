@@ -624,8 +624,9 @@ function RecipesPage() {
       </div>
 
       {/* Таблица техкарт */}
-      <div className="bg-white border border-gray-200 rounded-b-xl overflow-hidden shadow-sm">
-        <table className="w-full text-left border-collapse">
+      <div className="bg-white border border-gray-200 rounded-b-xl shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
               <th className="px-6 py-3 w-16">ID</th>
@@ -710,7 +711,8 @@ function RecipesPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
 
         {filteredRecipes.length === 0 && recipes.length > 0 && (
           <div className="text-center py-16 text-gray-500">

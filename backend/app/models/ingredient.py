@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..db import Base
 
@@ -18,7 +19,13 @@ class Ingredient(Base):
 
     # Основная информация
     name = Column(String, nullable=False, index=True)
-    category = Column(String, nullable=True)  # Категория: "Молочные", "Кофе", "Сиропы"
+
+    # DEPRECATED: будет удалено после миграции
+    category = Column(String, nullable=True)  # Старое текстовое поле
+
+    # НОВОЕ: связь с таблицей categories
+    category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True)
+    display_order = Column(Integer, nullable=False, default=0)  # Порядок отображения
 
     # Единица измерения (валидация через Pydantic: кг, г, л, мл, шт)
     unit = Column(String, nullable=False)
@@ -35,6 +42,9 @@ class Ingredient(Base):
     # Метаданные
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    category_rel = relationship("Category", back_populates="ingredients")
 
     def __repr__(self):
         return f"<Ingredient {self.name} ({self.stock_quantity} {self.unit})>"

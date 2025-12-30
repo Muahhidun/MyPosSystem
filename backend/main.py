@@ -9,7 +9,8 @@ from app.routes import (
     ingredients_router,
     recipes_router,
     semifinished_router,
-    pos_router
+    pos_router,
+    categories_router
 )
 
 # Создаем таблицы в БД
@@ -38,6 +39,7 @@ app.include_router(ingredients_router, prefix="/api")
 app.include_router(recipes_router, prefix="/api")
 app.include_router(semifinished_router, prefix="/api")
 app.include_router(pos_router, prefix="/api")
+app.include_router(categories_router, prefix="/api")
 
 
 @app.get("/")

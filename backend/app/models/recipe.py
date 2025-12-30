@@ -17,7 +17,13 @@ class Recipe(Base):
 
     # Основная информация
     name = Column(String, nullable=False, index=True)
-    category = Column(String, nullable=True)  # Категория (Пиццы, Бургеры, Напитки)
+
+    # DEPRECATED: будет удалено после миграции
+    category = Column(String, nullable=True)  # Старое текстовое поле
+
+    # НОВОЕ: связь с таблицей categories
+    category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True)
+    display_order = Column(Integer, nullable=False, default=0)  # Порядок отображения
 
     # Выход и цена
     output_weight = Column(Float, nullable=False, default=0.0)  # Выход готового блюда (в граммах/мл)
@@ -35,6 +41,8 @@ class Recipe(Base):
     ingredients = relationship("RecipeIngredient", back_populates="recipe", cascade="all, delete-orphan")
     # Связь с полуфабрикатами (будет добавлена)
     semifinished_items = relationship("RecipeSemifinished", back_populates="recipe", cascade="all, delete-orphan")
+    # Связь с категорией
+    category_rel = relationship("Category", back_populates="recipes")
 
     # Метаданные
     created_at = Column(DateTime(timezone=True), server_default=func.now())

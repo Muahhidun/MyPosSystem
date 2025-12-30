@@ -85,6 +85,13 @@ class ApiClient {
     return this.request('/products/categories/list');
   }
 
+  async reorderProducts(orderData) {
+    return this.request('/products/reorder', {
+      method: 'PATCH',
+      body: JSON.stringify(orderData),
+    });
+  }
+
   // Orders
   async createOrder(data) {
     return this.request('/orders', {
@@ -231,9 +238,50 @@ class ApiClient {
     return this.request('/semifinished/categories/list');
   }
 
+  // Categories (unified system)
+  async getAllCategories(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/categories${query ? `?${query}` : ''}`);
+  }
+
+  async getCategory(id) {
+    return this.request(`/categories/${id}`);
+  }
+
+  async createCategory(data) {
+    return this.request('/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCategory(id, data) {
+    return this.request(`/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async reorderCategories(orderData) {
+    return this.request('/categories/reorder', {
+      method: 'PATCH',
+      body: JSON.stringify(orderData),
+    });
+  }
+
+  async deleteCategory(id) {
+    return this.request(`/categories/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // POS (Касса - объединенный список товаров и техкарт)
   async getPOSItems() {
     return this.request('/pos/items');
+  }
+
+  async getPOSCategories() {
+    return this.request('/pos/categories');
   }
 }
 

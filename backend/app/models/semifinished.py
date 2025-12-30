@@ -21,12 +21,21 @@ class Semifinished(Base):
 
     # Основная информация
     name = Column(String, nullable=False, index=True)
-    category = Column(String, nullable=True)  # Категория полуфабриката
+
+    # DEPRECATED: будет удалено после миграции
+    category = Column(String, nullable=True)  # Старое текстовое поле
+
+    # НОВОЕ: связь с таблицей categories
+    category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True)
+    display_order = Column(Integer, nullable=False, default=0)  # Порядок отображения
+
     unit = Column(String, nullable=False, default="гр")  # Единица измерения (гр, мл, шт)
     output_quantity = Column(Float, nullable=False, default=100.0)  # Выход полуфабриката (в граммах/мл)
 
     # Связь с ингредиентами (состав)
     ingredients = relationship("SemifinishedIngredient", back_populates="semifinished", cascade="all, delete-orphan")
+    # Связь с категорией
+    category_rel = relationship("Category", back_populates="semifinished_items")
 
     # Метаданные
     created_at = Column(DateTime(timezone=True), server_default=func.now())

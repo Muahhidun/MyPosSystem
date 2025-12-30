@@ -4,6 +4,7 @@ from .settings import Settings
 from .ingredient import Ingredient
 from .recipe import Recipe, RecipeIngredient
 from .semifinished import Semifinished, SemifinishedIngredient, RecipeSemifinished
+from .category import Category, CategoryType
 
 __all__ = [
     "Product",
@@ -18,5 +19,7 @@ __all__ = [
     "RecipeIngredient",
     "Semifinished",
     "SemifinishedIngredient",
-    "RecipeSemifinished"
+    "RecipeSemifinished",
+    "Category",
+    "CategoryType"
 ]

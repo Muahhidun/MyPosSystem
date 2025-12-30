@@ -1,6 +1,7 @@
 from .product import ProductCreate, ProductUpdate, ProductResponse
 from .order import OrderCreate, OrderResponse, OrderItemResponse, OrderStats
 from .settings import SettingsUpdate, SettingsResponse
+from .category import CategoryCreate, CategoryUpdate, CategoryResponse
 from .ingredient import (
     IngredientCreate,
     IngredientUpdate,
@@ -36,6 +37,9 @@ __all__ = [
     "OrderStats",
     "SettingsUpdate",
     "SettingsResponse",
+    "CategoryCreate",
+    "CategoryUpdate",
+    "CategoryResponse",
     "IngredientCreate",
     "IngredientUpdate",
     "IngredientResponse",

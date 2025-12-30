@@ -19,7 +19,8 @@ function ProductsPage() {
   const [formData, setFormData] = useState({
     name: '',
     price: '',
-    category: '',
+    category: '', // DEPRECATED: для обратной совместимости
+    category_id: null,
     is_available: true,
     show_in_pos: true
   });
@@ -44,9 +45,8 @@ function ProductsPage() {
 
   const loadCategories = async () => {
     try {
-      const data = await api.getProducts();
-      const uniqueCategories = [...new Set(data.map(p => p.category).filter(Boolean))];
-      setCategories(uniqueCategories);
+      const data = await api.getAllCategories({ type: 'product', active_only: true });
+      setCategories(data);
     } catch (error) {
       console.error('Ошибка загрузки категорий:', error);
     }
@@ -56,8 +56,13 @@ function ProductsPage() {
     if (searchQuery && !product.name.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
-    if (filterCategory && product.category !== filterCategory) {
-      return false;
+    if (filterCategory) {
+      // Support both old category string and new category_id
+      const matchesOld = product.category === filterCategory;
+      const matchesNew = product.category_id && product.category_id.toString() === filterCategory;
+      if (!matchesOld && !matchesNew) {
+        return false;
+      }
     }
     return true;
   });
@@ -74,7 +79,7 @@ function ProductsPage() {
       const data = {
         name: formData.name,
         price: parseFloat(formData.price),
-        category: formData.category || null,
+        category_id: formData.category_id ? parseInt(formData.category_id) : null,
         is_available: formData.is_available,
         show_in_pos: formData.show_in_pos
       };
@@ -87,7 +92,7 @@ function ProductsPage() {
         toast.success('Товар создан');
       }
 
-      setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
+      setFormData({ name: '', price: '', category: '', category_id: null, is_available: true, show_in_pos: true });
       setEditingProduct(null);
       setShowForm(false);
       loadProducts();
@@ -103,7 +108,8 @@ function ProductsPage() {
     setFormData({
       name: product.name,
       price: product.price,
-      category: product.category || '',
+      category: product.category || '', // DEPRECATED: for backward compatibility
+      category_id: product.category_id || null,
       is_available: product.is_available,
       show_in_pos: product.show_in_pos !== undefined ? product.show_in_pos : true
     });
@@ -160,7 +166,7 @@ function ProductsPage() {
             onClick={() => {
               setShowForm(false);
               setEditingProduct(null);
-              setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
+              setFormData({ name: '', price: '', category: '', category_id: null, is_available: true, show_in_pos: true });
             }}
             className="flex items-center text-gray-500 hover:text-gray-900 mb-6 transition-colors"
           >
@@ -202,19 +208,18 @@ function ProductsPage() {
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                       Категория
                     </label>
-                    <input
-                      type="text"
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="Напитки..."
-                      list="categories-list"
-                    />
-                    <datalist id="categories-list">
+                    <select
+                      value={formData.category_id || ''}
+                      onChange={(e) => setFormData({ ...formData, category_id: e.target.value || null })}
+                      className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    >
+                      <option value="">Без категории</option>
                       {categories.map(cat => (
-                        <option key={cat} value={cat} />
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
                       ))}
-                    </datalist>
+                    </select>
                   </div>
                 </div>
 
@@ -255,7 +260,7 @@ function ProductsPage() {
                     onClick={() => {
                       setShowForm(false);
                       setEditingProduct(null);
-                      setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
+                      setFormData({ name: '', price: '', category: '', category_id: null, is_available: true, show_in_pos: true });
                     }}
                   >
                     Отмена
@@ -283,7 +288,7 @@ function ProductsPage() {
           onClick={() => {
             setShowForm(true);
             setEditingProduct(null);
-            setFormData({ name: '', price: '', category: '', is_available: true, show_in_pos: true });
+            setFormData({ name: '', price: '', category: '', category_id: null, is_available: true, show_in_pos: true });
           }}
         >
           <Plus size={18} /> Добавить товар
@@ -300,15 +305,16 @@ function ProductsPage() {
           <Select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
             <option value="">Все категории</option>
             {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
           </Select>
         </div>
       </div>
 
       {/* Таблица товаров */}
-      <div className="bg-white border border-gray-200 rounded-b-xl overflow-hidden shadow-sm">
-        <table className="w-full text-left border-collapse">
+      <div className="bg-white border border-gray-200 rounded-b-xl shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
               <th className="px-6 py-3 w-16">ID</th>
@@ -326,9 +332,9 @@ function ProductsPage() {
                 <td className="px-6 py-3 text-gray-400 text-sm">#{product.id}</td>
                 <td className="px-6 py-3 font-medium text-gray-900">{product.name}</td>
                 <td className="px-6 py-3">
-                  {product.category ? (
+                  {product.category_name || product.category ? (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                      {product.category}
+                      {product.category_name || product.category}
                     </span>
                   ) : (
                     <span className="text-gray-400 text-sm">-</span>
@@ -387,7 +393,8 @@ function ProductsPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
 
         {filteredProducts.length === 0 && products.length > 0 && (
           <div className="text-center py-16 text-gray-500">

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/client';
-import { Search, Plus, X, Edit2, Trash2, Package, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, X, Edit2, Trash2, Package, MoreHorizontal, ArrowLeft, AlertCircle } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import AdminLayout from '../../components/layout/AdminLayout';
+import AdminLayout from '../../components/AdminLayout';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Button } from '../../components/ui/Button';
 
-// Фиксированный список единиц измерения
 const UNITS = [
   { value: 'кг', label: 'кг (килограмм)' },
   { value: 'г', label: 'г (грамм)' },
@@ -53,23 +55,16 @@ function IngredientsPage() {
     }
   };
 
-  // Клиентская фильтрация и поиск
   const filteredIngredients = ingredients.filter(ingredient => {
-    // Фильтр по поиску
     if (searchQuery && !ingredient.name.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
-
-    // Фильтр по категории
     if (filterCategory && ingredient.category !== filterCategory) {
       return false;
     }
-
-    // Фильтр по единице измерения
     if (filterUnit && ingredient.unit !== filterUnit) {
       return false;
     }
-
     return true;
   });
 
@@ -87,7 +82,7 @@ function IngredientsPage() {
     setError(null);
 
     if (!formData.name || !formData.unit || !formData.purchase_price) {
-      toast.error('Заполните обязательные поля: название, единицу измерения и цену');
+      toast.error('Заполните обязательные поля');
       return;
     }
 
@@ -115,7 +110,7 @@ function IngredientsPage() {
       loadCategories();
     } catch (error) {
       console.error('Ошибка сохранения ингредиента:', error);
-      toast.error('Не удалось сохранить ингредиент: ' + (error.message || 'Неизвестная ошибка'));
+      toast.error('Не удалось сохранить ингредиент');
     }
   };
 
@@ -149,9 +144,9 @@ function IngredientsPage() {
 
   if (loading) {
     return (
-      <AdminLayout breadcrumbs={['Меню', 'Ингредиенты']}>
-        <div className="flex justify-center items-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <AdminLayout title="Ингредиенты">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       </AdminLayout>
     );
@@ -160,309 +155,249 @@ function IngredientsPage() {
   // Форма создания/редактирования
   if (showForm) {
     return (
-      <AdminLayout breadcrumbs={['Меню', 'Ингредиенты', editingIngredient ? 'Редактирование' : 'Создание']}>
+      <AdminLayout title={editingIngredient ? 'Редактирование ингредиента' : 'Новый ингредиент'}>
         <Toaster position="top-right" />
 
-        {/* Заголовок формы */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              {editingIngredient ? 'Редактировать ингредиент' : 'Новый ингредиент'}
-            </h1>
-            <p className="text-slate-500 mt-1">Справочник ингредиентов и сырья</p>
-          </div>
+        <div className="max-w-2xl">
           <button
             onClick={() => {
               setShowForm(false);
               setEditingIngredient(null);
               setFormData({ name: '', category: '', unit: 'кг', purchase_price: '', packaging_info: '' });
             }}
-            className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-2.5 rounded-xl hover:bg-slate-200 font-medium transition-all"
+            className="flex items-center text-gray-500 hover:text-gray-900 mb-6 transition-colors"
           >
-            <X size={18} /> Отмена
+            <ArrowLeft size={18} className="mr-1" />
+            Назад к списку
           </button>
-        </div>
 
-        {/* Ошибки */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <X size={18} className="text-red-500" />
+          {error && (
+            <div className="mb-6 p-4 rounded-lg border bg-red-50 border-red-200 flex items-start gap-3">
+              <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
                 <p className="text-sm text-red-700">{error}</p>
               </div>
               <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
                 <X size={18} />
               </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Форма редактирования */}
-        <form onSubmit={handleSubmit}>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b">Основная информация</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Название *</label>
-                  <input
+          <form onSubmit={handleSubmit}>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-5">Основная информация</h3>
+
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-5">
+                  <Input
+                    label="Название"
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
                     placeholder="Манговое пюре Ponthier"
                     required
                   />
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Категория
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      placeholder="Пюре"
+                      list="categories-list"
+                    />
+                    <datalist id="categories-list">
+                      {categories.map(cat => (
+                        <option key={cat} value={cat} />
+                      ))}
+                    </datalist>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Категория</label>
-                  <input
-                    type="text"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
-                    placeholder="Пюре"
-                    list="categories-list"
-                  />
-                  <datalist id="categories-list">
-                    {categories.map(cat => (
-                      <option key={cat} value={cat} />
-                    ))}
-                  </datalist>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Единица измерения *</label>
-                  <select
+                <div className="grid grid-cols-2 gap-5">
+                  <Select
+                    label="Единица измерения"
                     value={formData.unit}
                     onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
                     required
                   >
                     {UNITS.map(unit => (
                       <option key={unit.value} value={unit.value}>{unit.label}</option>
                     ))}
-                  </select>
-                </div>
+                  </Select>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Цена закупки (за единицу) *</label>
-                  <div className="relative">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Цена закупки (за единицу)
+                    </label>
                     <input
                       type="number"
                       step="0.01"
                       value={formData.purchase_price}
                       onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value })}
-                      className="w-full px-4 py-2.5 pr-8 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
+                      className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       placeholder="2333"
                       required
                     />
-                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm">₸</span>
+                    <p className="text-xs text-gray-500 mt-1.5">Цена за 1 {formData.unit}</p>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">Цена за 1 {formData.unit}</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Информация об упаковке
+                  </label>
+                  <textarea
+                    value={formData.packaging_info}
+                    onChange={(e) => setFormData({ ...formData, packaging_info: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="Коробка 12 банок по 1.2кг, цена коробки 33600₸"
+                    rows="2"
+                  />
+                  <p className="text-xs text-gray-500 mt-1.5">Фасовка, количество в коробке, цена упаковки</p>
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t border-gray-100">
+                  <Button type="submit" className="flex-1">
+                    {editingIngredient ? 'Сохранить изменения' : 'Создать ингредиент'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setShowForm(false);
+                      setEditingIngredient(null);
+                      setFormData({ name: '', category: '', unit: 'кг', purchase_price: '', packaging_info: '' });
+                    }}
+                  >
+                    Отмена
+                  </Button>
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Информация об упаковке (опционально)</label>
-                <textarea
-                  value={formData.packaging_info}
-                  onChange={(e) => setFormData({ ...formData, packaging_info: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
-                  placeholder="Коробка 12 банок по 1.2кг, цена коробки 33600₸"
-                  rows="2"
-                />
-                <p className="text-xs text-slate-500 mt-1">Например: фасовка, количество в коробке, цена упаковки</p>
-              </div>
-
-              <div className="flex gap-3 pt-4 border-t">
-                <button
-                  type="submit"
-                  className="bg-indigo-600 text-white px-8 py-2.5 rounded-lg hover:bg-indigo-700 font-medium shadow-sm transition-all active:scale-[0.98]"
-                >
-                  {editingIngredient ? 'Сохранить изменения' : 'Создать ингредиент'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowForm(false);
-                    setEditingIngredient(null);
-                    setFormData({ name: '', category: '', unit: 'кг', purchase_price: '', packaging_info: '' });
-                  }}
-                  className="bg-slate-100 text-slate-700 px-8 py-2.5 rounded-lg hover:bg-slate-200 font-medium transition-all"
-                >
-                  Отмена
-                </button>
-              </div>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
       </AdminLayout>
     );
   }
 
   // Список ингредиентов (table view)
   return (
-    <AdminLayout breadcrumbs={['Меню', 'Ингредиенты']}>
+    <AdminLayout title="Ингредиенты">
       <Toaster position="top-right" />
 
-      {/* Заголовок */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-end mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Ингредиенты</h1>
-          <p className="text-slate-500 mt-1">Справочник ингредиентов и сырья</p>
+          <p className="text-gray-500">Справочник ингредиентов и сырья</p>
         </div>
-        <button
+        <Button
           onClick={() => {
             setShowForm(true);
             setEditingIngredient(null);
             setFormData({ name: '', category: '', unit: 'кг', purchase_price: '', packaging_info: '' });
           }}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-xl hover:bg-indigo-700 font-medium shadow-sm transition-all active:scale-[0.98]"
         >
           <Plus size={18} /> Добавить ингредиент
-        </button>
+        </Button>
       </div>
 
-      {/* Ошибки */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <X size={18} className="text-red-500" />
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
-              <X size={18} />
-            </button>
-          </div>
+        <div className="mb-6 p-4 rounded-lg border bg-red-50 border-red-200 flex items-start gap-3">
+          <AlertCircle size={20} className="text-red-600 flex-shrink-0" />
+          <p className="text-sm text-red-700">{error}</p>
+          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 ml-auto">
+            <X size={18} />
+          </button>
         </div>
       )}
 
       {/* Поиск и фильтры */}
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mb-6">
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Быстрый поиск</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Поиск по названию..."
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Категория</label>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
-            >
-              <option value="">Все категории</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Единица измерения</label>
-            <select
-              value={filterUnit}
-              onChange={(e) => setFilterUnit(e.target.value)}
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
-            >
-              <option value="">Все единицы</option>
-              {UNITS.map(unit => (
-                <option key={unit.value} value={unit.value}>{unit.label}</option>
-              ))}
-            </select>
-          </div>
+      <div className="bg-white p-4 rounded-t-xl border border-gray-200 border-b-0 grid grid-cols-12 gap-4 items-center">
+        <div className="col-span-6 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Input placeholder="Поиск по названию..." className="pl-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
-
-        {(searchQuery || filterCategory || filterUnit) && (
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <Package className="w-4 h-4" />
-              <span>Найдено: <span className="font-semibold text-slate-900">{filteredIngredients.length}</span> из {ingredients.length}</span>
-            </div>
-          </div>
-        )}
+        <div className="col-span-3">
+          <Select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+            <option value="">Все категории</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </Select>
+        </div>
+        <div className="col-span-3">
+          <Select value={filterUnit} onChange={(e) => setFilterUnit(e.target.value)}>
+            <option value="">Все единицы</option>
+            {UNITS.map(unit => (
+              <option key={unit.value} value={unit.value}>{unit.label}</option>
+            ))}
+          </Select>
+        </div>
       </div>
 
-      {/* Список ингредиентов */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-visible">
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
+      {/* Таблица ингредиентов */}
+      <div className="bg-white border border-gray-200 rounded-b-xl overflow-hidden shadow-sm">
+        <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold tracking-wider">
-              <th className="px-6 py-3 text-left w-16">ID</th>
-              <th className="px-6 py-3 text-left">Название</th>
-              <th className="px-6 py-3 text-left">Категория</th>
-              <th className="px-6 py-3 text-left">Единица</th>
+            <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
+              <th className="px-6 py-3 w-16">ID</th>
+              <th className="px-6 py-3">Название</th>
+              <th className="px-6 py-3">Категория</th>
+              <th className="px-6 py-3">Единица</th>
               <th className="px-6 py-3 text-right">Цена закупки</th>
-              <th className="px-6 py-3 text-left">Упаковка</th>
-              <th className="px-6 py-3 text-right w-16"></th>
+              <th className="px-6 py-3">Упаковка</th>
+              <th className="px-6 py-3 w-16"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-gray-100">
             {filteredIngredients.map(ingredient => (
-              <tr key={ingredient.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-slate-400">
-                  #{ingredient.id}
-                </td>
+              <tr key={ingredient.id} className="hover:bg-gray-50 transition-colors group">
+                <td className="px-6 py-3 text-gray-400 text-sm">#{ingredient.id}</td>
+                <td className="px-6 py-3 font-medium text-gray-900">{ingredient.name}</td>
                 <td className="px-6 py-3">
-                  <div className="font-semibold text-slate-900">{ingredient.name}</div>
-                </td>
-                <td className="px-6 py-3 whitespace-nowrap">
                   {ingredient.category ? (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                       {ingredient.category}
                     </span>
                   ) : (
-                    <span className="text-slate-400 text-sm">-</span>
+                    <span className="text-gray-400 text-sm">-</span>
                   )}
                 </td>
-                <td className="px-6 py-3 whitespace-nowrap">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
+                <td className="px-6 py-3">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
                     {ingredient.unit}
                   </span>
                 </td>
-                <td className="px-6 py-3 whitespace-nowrap text-right">
-                  <div className="font-semibold text-slate-900">{ingredient.purchase_price.toFixed(2)} ₸</div>
-                  <div className="text-xs text-slate-500">за {ingredient.unit}</div>
+                <td className="px-6 py-3 text-right">
+                  <div className="text-sm font-medium text-gray-900">{ingredient.purchase_price.toFixed(2)} ₸</div>
+                  <div className="text-xs text-gray-500">за {ingredient.unit}</div>
                 </td>
-                <td className="px-6 py-3 text-sm text-slate-600">
+                <td className="px-6 py-3 text-sm text-gray-600">
                   {ingredient.packaging_info ? (
-                    <div className="max-w-xs">{ingredient.packaging_info}</div>
+                    <div className="max-w-xs truncate">{ingredient.packaging_info}</div>
                   ) : (
-                    <span className="text-slate-400">-</span>
+                    <span className="text-gray-400">-</span>
                   )}
                 </td>
-                <td className="px-6 py-3 whitespace-nowrap text-sm text-right relative">
+                <td className="px-6 py-3 text-right relative">
                   <button
                     onClick={() => setShowActionsMenu(showActionsMenu === ingredient.id ? null : ingredient.id)}
-                    className="p-2 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                   >
                     <MoreHorizontal size={18} />
                   </button>
                   {showActionsMenu === ingredient.id && (
-                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                       <button
                         onClick={() => {
                           handleEdit(ingredient);
                           setShowActionsMenu(null);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
                       >
                         <Edit2 size={14} /> Изменить
                       </button>
@@ -471,7 +406,7 @@ function IngredientsPage() {
                           handleDelete(ingredient.id, ingredient.name);
                           setShowActionsMenu(null);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
                       >
                         <Trash2 size={14} /> Удалить
                       </button>
@@ -482,19 +417,18 @@ function IngredientsPage() {
             ))}
           </tbody>
         </table>
-        </div>
 
         {filteredIngredients.length === 0 && ingredients.length > 0 && (
-          <div className="text-center py-16 text-slate-500">
-            <Search className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+          <div className="text-center py-16 text-gray-500">
+            <Search className="w-16 h-16 mx-auto mb-4 text-gray-400" />
             <p className="text-lg font-medium">Ничего не найдено</p>
             <p className="text-sm mt-2">Попробуйте изменить параметры поиска</p>
           </div>
         )}
 
         {ingredients.length === 0 && (
-          <div className="text-center py-16 text-slate-500">
-            <Package className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+          <div className="text-center py-16 text-gray-500">
+            <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
             <p className="text-lg font-medium">Нет ингредиентов</p>
             <p className="text-sm mt-2">Добавьте первый ингредиент, нажав на кнопку выше</p>
           </div>

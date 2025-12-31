@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/client';
-import { Search, Plus, X, Edit2, Trash2, ShoppingBag, MoreHorizontal, ArrowLeft, Eye, EyeOff, GripVertical } from 'lucide-react';
+import { Search, Plus, X, Edit2, Trash2, ShoppingBag, MoreHorizontal, ArrowLeft, Eye, EyeOff, GripVertical, Ruler, Layers } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import AdminLayout from '../../components/AdminLayout';
 import { Input } from '../../components/ui/Input';
@@ -9,9 +9,11 @@ import { Button } from '../../components/ui/Button';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import VariantsModal from '../../components/VariantsModal';
+import ProductModifiersModal from '../../components/ProductModifiersModal';
 
 // Sortable Product Row Component
-function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleAvailable }) {
+function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleAvailable, onConfigureVariants, onConfigureModifiers }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: product.id
   });
@@ -73,7 +75,7 @@ function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuTogg
           <MoreHorizontal size={18} />
         </button>
         {showActionsMenu === product.id && (
-          <div className={`absolute right-0 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 ${
+          <div className={`absolute right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 ${
             isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'
           }`}>
             <button
@@ -82,6 +84,19 @@ function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuTogg
             >
               <Edit2 size={14} /> Изменить
             </button>
+            <button
+              onClick={() => { onConfigureVariants(product); onMenuToggle(null); }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
+            >
+              <Ruler size={14} /> Размеры
+            </button>
+            <button
+              onClick={() => { onConfigureModifiers(product); onMenuToggle(null); }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
+            >
+              <Layers size={14} /> Модификации
+            </button>
+            <div className="border-t border-gray-200 my-1"></div>
             <button
               onClick={() => { onDelete(product.id, product.name); onMenuToggle(null); }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
@@ -104,6 +119,8 @@ function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [showActionsMenu, setShowActionsMenu] = useState(null);
+  const [showVariantsModal, setShowVariantsModal] = useState(null); // product
+  const [showModifiersModal, setShowModifiersModal] = useState(null); // product
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -236,6 +253,14 @@ function ProductsPage() {
       console.error('Ошибка обновления товара:', error);
       toast.error('Не удалось обновить товар');
     }
+  };
+
+  const handleConfigureVariants = (product) => {
+    setShowVariantsModal(product);
+  };
+
+  const handleConfigureModifiers = (product) => {
+    setShowModifiersModal(product);
   };
 
   const handleDragEnd = async (event) => {
@@ -473,6 +498,8 @@ function ProductsPage() {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onToggleAvailable={handleToggleAvailable}
+                    onConfigureVariants={handleConfigureVariants}
+                    onConfigureModifiers={handleConfigureModifiers}
                   />
                 ))}
               </tbody>
@@ -497,6 +524,21 @@ function ProductsPage() {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      {showVariantsModal && (
+        <VariantsModal
+          product={showVariantsModal}
+          onClose={() => setShowVariantsModal(null)}
+        />
+      )}
+
+      {showModifiersModal && (
+        <ProductModifiersModal
+          product={showModifiersModal}
+          onClose={() => setShowModifiersModal(null)}
+        />
+      )}
     </AdminLayout>
   );
 }

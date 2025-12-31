@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
   ShoppingCart, Minus, Plus, X, Banknote, CreditCard,
-  Package, Trash2
+  Package, Trash2, Settings
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import api from '../api/client';
 import ReceiptPrinter from '../utils/receiptPrinter';
 import LabelPrinter from '../utils/labelPrinter';
+import POSModifiersModal from '../components/POSModifiersModal';
 
 function POSPage() {
   const [products, setProducts] = useState([]);
@@ -15,6 +16,7 @@ function POSPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [categories, setCategories] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [modifiersModalProduct, setModifiersModalProduct] = useState(null);
 
   useEffect(() => {
     loadProducts();
@@ -55,10 +57,17 @@ function POSPage() {
   };
 
   const addToCart = (product) => {
-    const existing = cart.find(item => item.id === product.id);
+    // Если у товара есть варианты или модификации - открыть модальное окно
+    if (product.has_variants || product.has_modifiers) {
+      setModifiersModalProduct(product);
+      return;
+    }
+
+    // Иначе добавить напрямую
+    const existing = cart.find(item => item.id === product.id && !item.cartKey);
     if (existing) {
       setCart(cart.map(item =>
-        item.id === product.id
+        item.id === product.id && !item.cartKey
           ? { ...item, quantity: item.quantity + 1 }
           : item
       ));
@@ -68,17 +77,49 @@ function POSPage() {
     toast.success(`${product.name} добавлен`);
   };
 
-  const removeFromCart = (productId) => {
-    setCart(cart.filter(item => item.id !== productId));
+  const handleModifiersConfirm = ({ product, variant, modifiers, totalPrice }) => {
+    // Создать уникальный ключ для корзины (товар + вариант + модификации)
+    const variantKey = variant ? `v${variant.id}` : '';
+    const modifiersKey = modifiers.map(m => m.id).sort().join(',');
+    const cartKey = `${product.id}_${variantKey}_${modifiersKey}`;
+
+    // Проверить есть ли уже такой же товар с такими же опциями
+    const existing = cart.find(item => item.cartKey === cartKey);
+
+    if (existing) {
+      setCart(cart.map(item =>
+        item.cartKey === cartKey
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      ));
+    } else {
+      const cartItem = {
+        ...product,
+        cartKey,
+        variant,
+        modifiers,
+        price: totalPrice,
+        quantity: 1,
+        displayName: variant ? `${product.name} (${variant.name})` : product.name,
+        displayModifiers: modifiers.length > 0 ? modifiers.map(m => m.name).join(', ') : null
+      };
+      setCart([...cart, cartItem]);
+    }
+
+    toast.success(`${product.name} добавлен`);
   };
 
-  const updateQuantity = (productId, quantity) => {
+  const removeFromCart = (itemKey) => {
+    setCart(cart.filter(item => (item.cartKey || item.id) !== itemKey));
+  };
+
+  const updateQuantity = (itemKey, quantity) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(itemKey);
       return;
     }
     setCart(cart.map(item =>
-      item.id === productId ? { ...item, quantity } : item
+      (item.cartKey || item.id) === itemKey ? { ...item, quantity } : item
     ));
   };
 
@@ -107,7 +148,13 @@ function POSPage() {
           item_type: item.type || 'product',  // 'product' или 'recipe'
           product_id: item.type === 'product' ? item.id : null,
           recipe_id: item.type === 'recipe' ? item.id : null,
-          quantity: item.quantity
+          quantity: item.quantity,
+          variant_id: item.variant ? item.variant.id : null,
+          modifiers: item.modifiers ? item.modifiers.map(m => ({
+            modifier_id: m.id,
+            name: m.name,
+            price: m.price
+          })) : null
         })),
         payment_method: paymentMethod
       };
@@ -230,8 +277,15 @@ function POSPage() {
                   <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
                     <Package size={16} className="text-gray-600" />
                   </div>
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Plus size={18} className="text-blue-600" />
+                  <div className="flex items-center gap-1">
+                    {(product.has_variants || product.has_modifiers) && (
+                      <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
+                        <Settings size={14} className="text-orange-600" />
+                      </div>
+                    )}
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Plus size={18} className="text-blue-600" />
+                    </div>
                   </div>
                 </div>
                 <h3 className="font-semibold text-sm mb-1 text-gray-900 line-clamp-2 min-h-8">{product.name}</h3>
@@ -279,39 +333,49 @@ function POSPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {cart.map(item => (
-                  <div key={item.id} className="p-2 border-2 border-gray-200 rounded-xl bg-gray-50 hover:bg-white transition-colors min-h-12">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="font-bold text-sm text-gray-900 flex-1 pr-2">{item.name}</span>
-                      <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors active:scale-95"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
+                {cart.map(item => {
+                  const itemKey = item.cartKey || item.id;
+                  return (
+                    <div key={itemKey} className="p-2 border-2 border-gray-200 rounded-xl bg-gray-50 hover:bg-white transition-colors min-h-12">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1 pr-2">
+                          <span className="font-bold text-sm text-gray-900">{item.displayName || item.name}</span>
+                          {item.displayModifiers && (
+                            <div className="text-xs text-gray-600 mt-1">
+                              + {item.displayModifiers}
+                            </div>
+                          )}
+                        </div>
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          className="w-8 h-8 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center"
+                          onClick={() => removeFromCart(itemKey)}
+                          className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors active:scale-95"
                         >
-                          <Minus size={16} className="text-gray-700" />
-                        </button>
-                        <span className="w-8 text-center font-bold text-base text-gray-900">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="w-8 h-8 bg-blue-600 rounded-lg hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center"
-                        >
-                          <Plus size={16} className="text-white" />
+                          <X size={18} />
                         </button>
                       </div>
-                      <span className="font-bold text-base text-blue-600">
-                        {(item.price * item.quantity).toFixed(0)}₸
-                      </span>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => updateQuantity(itemKey, item.quantity - 1)}
+                            className="w-8 h-8 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center"
+                          >
+                            <Minus size={16} className="text-gray-700" />
+                          </button>
+                          <span className="w-8 text-center font-bold text-base text-gray-900">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(itemKey, item.quantity + 1)}
+                            className="w-8 h-8 bg-blue-600 rounded-lg hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center"
+                          >
+                            <Plus size={16} className="text-white" />
+                          </button>
+                        </div>
+                        <span className="font-bold text-base text-blue-600">
+                          {(item.price * item.quantity).toFixed(0)}₸
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -358,6 +422,15 @@ function POSPage() {
           </div>
         </div>
       </div>
+
+      {/* Modifiers Modal */}
+      {modifiersModalProduct && (
+        <POSModifiersModal
+          product={modifiersModalProduct}
+          onClose={() => setModifiersModalProduct(null)}
+          onConfirm={handleModifiersConfirm}
+        />
+      )}
     </div>
   );
 }

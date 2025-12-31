@@ -319,20 +319,48 @@ function RecipesPage() {
       );
       const reordered = arrayMove(filtered, oldIndex, newIndex);
 
-      // Обновляем display_order
-      reordered.forEach((recipe, index) => {
-        const original = allRecipes.find(r => r.id === recipe.id);
-        if (original) original.display_order = index;
+      // Группируем техкарты по категориям и обновляем display_order ВНУТРИ каждой категории
+      const recipesByCategory = {};
+      reordered.forEach(recipe => {
+        const catId = recipe.category_id || 'null';
+        if (!recipesByCategory[catId]) {
+          recipesByCategory[catId] = [];
+        }
+        recipesByCategory[catId].push(recipe);
+      });
+
+      // Присваиваем display_order внутри каждой категории
+      Object.values(recipesByCategory).forEach(categoryRecipes => {
+        categoryRecipes.forEach((recipe, index) => {
+          const original = allRecipes.find(r => r.id === recipe.id);
+          if (original) original.display_order = index;
+        });
       });
 
       return allRecipes;
     });
 
     try {
-      const orderUpdate = newRecipes.map((recipe, index) => ({
-        id: recipe.id,
-        display_order: index
-      }));
+      // Отправляем обновлённый порядок для всех перемещённых техкарт
+      const recipesByCategory = {};
+      newRecipes.forEach(recipe => {
+        const catId = recipe.category_id || 'null';
+        if (!recipesByCategory[catId]) {
+          recipesByCategory[catId] = [];
+        }
+        recipesByCategory[catId].push(recipe);
+      });
+
+      const orderUpdate = [];
+      Object.values(recipesByCategory).forEach(categoryRecipes => {
+        categoryRecipes.forEach((recipe, index) => {
+          orderUpdate.push({
+            id: recipe.id,
+            display_order: index
+          });
+        });
+      });
+
       await api.reorderRecipes(orderUpdate);
       toast.success('Порядок техкарт обновлён');
       // Перезагружаем данные с сервера для синхронизации

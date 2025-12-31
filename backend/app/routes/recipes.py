@@ -80,14 +80,19 @@ def get_recipes(
     db: Session = Depends(get_db)
 ):
     """Получить список всех техкарт"""
-    query = db.query(Recipe).options(joinedload(Recipe.category_rel))
+    from sqlalchemy.orm import joinedload
+    from ..models import Category
+
+    # Загружаем техкарты с категориями
+    query = db.query(Recipe).outerjoin(Recipe.category_rel).options(joinedload(Recipe.category_rel))
 
     if category:
         query = query.filter(Recipe.category == category)
 
-    # Сортируем по порядку отображения и названию
-    # (В админке порядок задаётся вручную, категории не влияют на сортировку)
+    # Сортируем по: порядок категории → порядок техкарты → название
+    # Это обеспечивает правильную группировку на кассе и в админке
     recipes = query.order_by(
+        Category.display_order.asc().nulls_last(),
         Recipe.display_order.asc(),
         Recipe.name.asc()
     ).offset(skip).limit(limit).all()

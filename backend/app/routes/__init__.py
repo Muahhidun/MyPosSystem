@@ -6,6 +6,8 @@ from .recipes import router as recipes_router
 from .semifinished import router as semifinished_router
 from .pos import router as pos_router
 from .categories import router as categories_router
+from .product_variants import router as product_variants_router
+from .modifiers import router as modifiers_router
 
 __all__ = [
     "products_router",
@@ -15,5 +17,7 @@ __all__ = [
     "recipes_router",
     "semifinished_router",
     "pos_router",
-    "categories_router"
+    "categories_router",
+    "product_variants_router",
+    "modifiers_router"
 ]

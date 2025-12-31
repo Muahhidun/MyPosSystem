@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 from ..db import get_db
-from ..models import Product, Recipe, Category, CategoryType
+from ..models import Product, Recipe, Category, CategoryType, ProductVariant, ProductModifierGroup
 
 router = APIRouter(prefix="/pos", tags=["pos"])
 
@@ -31,6 +31,16 @@ def get_pos_items(db: Session = Depends(get_db)):
     ).all()
 
     for product in products:
+        # Проверяем наличие вариантов и модификаторов
+        has_variants = db.query(ProductVariant).filter(
+            ProductVariant.base_product_id == product.id,
+            ProductVariant.is_active == True
+        ).count() > 0
+
+        has_modifiers = db.query(ProductModifierGroup).filter(
+            ProductModifierGroup.product_id == product.id
+        ).count() > 0
+
         items.append({
             "id": product.id,
             "type": "product",  # Тип: товар (покупной)
@@ -43,7 +53,9 @@ def get_pos_items(db: Session = Depends(get_db)):
             "is_available": product.is_available,
             "image_url": product.image_url,
             "cost": None,  # У товаров нет автоматической себестоимости
-            "markup_percentage": None
+            "markup_percentage": None,
+            "has_variants": has_variants,  # Есть варианты (размеры)
+            "has_modifiers": has_modifiers  # Есть модификации (добавки)
         })
 
     # Получаем Recipes с сортировкой
@@ -69,7 +81,9 @@ def get_pos_items(db: Session = Depends(get_db)):
             "image_url": recipe.image_url,
             "cost": recipe.cost,  # Себестоимость из ингредиентов
             "markup_percentage": recipe.markup_percentage,
-            "output_weight": recipe.output_weight
+            "output_weight": recipe.output_weight,
+            "has_variants": False,  # Техкарты не имеют вариантов
+            "has_modifiers": False  # Техкарты не имеют модификаций
         })
 
     # Сортировка уже выполнена на уровне БД, возвращаем как есть

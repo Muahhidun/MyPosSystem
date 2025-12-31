@@ -53,15 +53,20 @@ class OrderItem(Base):
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
     recipe_id = Column(Integer, ForeignKey("recipes.id"), nullable=True)
 
+    # Варианты и модификаторы
+    variant_id = Column(Integer, ForeignKey("product_variants.id", ondelete="SET NULL"), nullable=True)
+    modifiers = Column(JSON, nullable=True)  # [{"modifier_id": 1, "name": "Тапиока", "price": 200}, ...]
+
     item_name = Column(String, nullable=False)  # Фиксируем название
     quantity = Column(Integer, nullable=False, default=1)
-    price = Column(Float, nullable=False)  # Цена на момент продажи
+    price = Column(Float, nullable=False)  # Цена на момент продажи (с учетом variant + modifiers)
     subtotal = Column(Float, nullable=False)  # quantity * price
 
     # Relationships
     order = relationship("Order", backref="order_items")
     product = relationship("Product")
     recipe = relationship("Recipe")
+    variant = relationship("ProductVariant")
 
     def __repr__(self):
         return f"<OrderItem {self.item_name} x{self.quantity}>"

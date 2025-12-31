@@ -182,6 +182,59 @@ def migrate_categories_table():
         }
 
 
+@app.post("/api/admin/migrate-modifiers")
+def migrate_modifiers_tables():
+    """
+    ВРЕМЕННЫЙ ENDPOINT для создания таблиц модификаторов и обновления order_items
+    """
+    import os
+
+    try:
+        # Определяем тип БД
+        database_url = os.getenv('DATABASE_URL', '')
+        is_postgres = 'postgresql' in database_url.lower()
+
+        messages = []
+
+        with engine.connect() as conn:
+            # 1. Добавляем поля в order_items
+            messages.append("📝 Добавление variant_id и modifiers в order_items...")
+            try:
+                if is_postgres:
+                    conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS variant_id INTEGER"))
+                    conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS modifiers JSON"))
+                else:
+                    # SQLite не поддерживает IF NOT EXISTS для столбцов, проверяем наличие
+                    try:
+                        conn.execute(text("ALTER TABLE order_items ADD COLUMN variant_id INTEGER"))
+                    except:
+                        pass  # Столбец уже существует
+                    try:
+                        conn.execute(text("ALTER TABLE order_items ADD COLUMN modifiers TEXT"))  # SQLite использует TEXT для JSON
+                    except:
+                        pass  # Столбец уже существует
+
+                messages.append("✅ Поля добавлены в order_items")
+            except Exception as e:
+                messages.append(f"⚠️ order_items: {str(e)}")
+
+            conn.commit()
+            messages.append("✅ Миграция завершена успешно!")
+            messages.append("ℹ️  Таблицы product_variants, modifier_groups, modifiers, product_modifier_groups")
+            messages.append("   создадутся автоматически при следующем перезапуске backend")
+
+        return {
+            "status": "success",
+            "messages": messages,
+            "database_type": "PostgreSQL" if is_postgres else "SQLite"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

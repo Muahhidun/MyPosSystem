@@ -51,7 +51,8 @@ class RecipeIngredientResponse(RecipeIngredientBase):
 # Recipe schemas
 class RecipeBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
-    category: Optional[str] = Field(None, max_length=100)
+    category: Optional[str] = Field(None, max_length=100)  # DEPRECATED: для обратной совместимости
+    category_id: Optional[int] = Field(None, description="ID категории")
     output_weight: float = Field(..., ge=0, description="Выход готового блюда (г/мл)")
     price: float = Field(..., ge=0, description="Цена продажи")
     is_weight_based: bool = Field(False, description="Весовое блюдо")
@@ -67,7 +68,8 @@ class RecipeCreate(RecipeBase):
 
 class RecipeUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
-    category: Optional[str] = Field(None, max_length=100)
+    category: Optional[str] = Field(None, max_length=100)  # DEPRECATED: для обратной совместимости
+    category_id: Optional[int] = Field(None, description="ID категории")
     output_weight: Optional[float] = Field(None, ge=0)
     price: Optional[float] = Field(None, ge=0)
     is_weight_based: Optional[bool] = None
@@ -80,6 +82,7 @@ class RecipeUpdate(BaseModel):
 
 class RecipeResponse(RecipeBase):
     id: int
+    category_name: Optional[str] = Field(None, description="Название категории")
     ingredients: List[RecipeIngredientResponse] = []
     semifinished: List[RecipeSemifinishedResponse] = []
     cost: float  # Себестоимость (сумма стоимостей ингредиентов + полуфабрикатов)
@@ -96,7 +99,9 @@ class RecipeListItem(BaseModel):
     """Упрощённая схема для списка техкарт (без ингредиентов)"""
     id: int
     name: str
-    category: Optional[str]
+    category: Optional[str]  # DEPRECATED: для обратной совместимости
+    category_id: Optional[int]
+    category_name: Optional[str]
     output_weight: float
     price: float
     cost: float

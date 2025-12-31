@@ -159,6 +159,7 @@ def create_recipe(recipe_data: RecipeCreate, db: Session = Depends(get_db)):
     recipe = Recipe(
         name=recipe_data.name,
         category=recipe_data.category,
+        category_id=recipe_data.category_id,
         output_weight=recipe_data.output_weight,
         price=recipe_data.price,
         is_weight_based=recipe_data.is_weight_based,

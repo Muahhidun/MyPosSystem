@@ -285,6 +285,20 @@ def delete_recipe(recipe_id: int, db: Session = Depends(get_db)):
     return None
 
 
+@router.patch("/reorder")
+def reorder_recipes(order: List[dict], db: Session = Depends(get_db)):
+    """
+    Обновить порядок отображения техкарт
+    Body: [{"id": 1, "display_order": 0}, {"id": 3, "display_order": 1}, ...]
+    """
+    for item in order:
+        recipe = db.query(Recipe).filter(Recipe.id == item["id"]).first()
+        if recipe:
+            recipe.display_order = item["display_order"]
+    db.commit()
+    return {"status": "ok", "updated": len(order)}
+
+
 @router.get("/categories/list", response_model=List[str])
 def get_recipe_categories(db: Session = Depends(get_db)):
     """Получить список всех категорий техкарт"""

@@ -1,11 +1,99 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/client';
-import { Search, Plus, X, Edit2, Trash2, ShoppingBag, MoreHorizontal, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Search, Plus, X, Edit2, Trash2, ShoppingBag, MoreHorizontal, ArrowLeft, Eye, EyeOff, GripVertical } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import AdminLayout from '../../components/AdminLayout';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Button } from '../../components/ui/Button';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable Product Row Component
+function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleAvailable }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: product.id
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    backgroundColor: isDragging ? '#f3f4f6' : 'transparent'
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className="hover:bg-gray-50 transition-colors group">
+      <td className="px-6 py-3">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab hover:text-blue-600 active:cursor-grabbing touch-none"
+        >
+          <GripVertical size={18} />
+        </button>
+      </td>
+      <td className="px-6 py-3 text-gray-400 text-sm">#{product.id}</td>
+      <td className="px-6 py-3 font-medium text-gray-900">{product.name}</td>
+      <td className="px-6 py-3">
+        {product.category_name || product.category ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+            {product.category_name || product.category}
+          </span>
+        ) : (
+          <span className="text-gray-400 text-sm">-</span>
+        )}
+      </td>
+      <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">{product.price.toFixed(2)} ₸</td>
+      <td className="px-6 py-3">
+        <button
+          onClick={() => onToggleAvailable(product)}
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+            product.is_available
+              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+              : 'bg-red-100 text-red-700 hover:bg-red-200'
+          }`}
+        >
+          {product.is_available ? 'Доступен' : 'Недоступен'}
+        </button>
+      </td>
+      <td className="px-6 py-3 text-center">
+        {product.show_in_pos ? (
+          <Eye size={16} className="inline text-green-600" />
+        ) : (
+          <EyeOff size={16} className="inline text-gray-400" />
+        )}
+      </td>
+      <td className="px-6 py-3 text-right relative">
+        <button
+          onClick={() => onMenuToggle(product.id)}
+          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+        >
+          <MoreHorizontal size={18} />
+        </button>
+        {showActionsMenu === product.id && (
+          <div className={`absolute right-0 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 ${
+            isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'
+          }`}>
+            <button
+              onClick={() => { onEdit(product); onMenuToggle(null); }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
+            >
+              <Edit2 size={14} /> Изменить
+            </button>
+            <button
+              onClick={() => { onDelete(product.id, product.name); onMenuToggle(null); }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+            >
+              <Trash2 size={14} /> Удалить
+            </button>
+          </div>
+        )}
+      </td>
+    </tr>
+  );
+}
 
 function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -24,6 +112,11 @@ function ProductsPage() {
     is_available: true,
     show_in_pos: true
   });
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
 
   useEffect(() => {
     loadProducts();
@@ -142,6 +235,46 @@ function ProductsPage() {
     } catch (error) {
       console.error('Ошибка обновления товара:', error);
       toast.error('Не удалось обновить товар');
+    }
+  };
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = filteredProducts.findIndex(p => p.id === active.id);
+    const newIndex = filteredProducts.findIndex(p => p.id === over.id);
+    const newProducts = arrayMove(filteredProducts, oldIndex, newIndex);
+
+    // Оптимистично обновляем UI
+    setProducts(prevProducts => {
+      const allProducts = [...prevProducts];
+      const filtered = allProducts.filter(p =>
+        (!filterCategory || p.category_id?.toString() === filterCategory || p.category === filterCategory) &&
+        (!searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      const reordered = arrayMove(filtered, oldIndex, newIndex);
+
+      // Обновляем display_order
+      reordered.forEach((product, index) => {
+        const original = allProducts.find(p => p.id === product.id);
+        if (original) original.display_order = index;
+      });
+
+      return allProducts;
+    });
+
+    try {
+      const orderUpdate = newProducts.map((product, index) => ({
+        id: product.id,
+        display_order: index
+      }));
+      await api.reorderProducts(orderUpdate);
+      toast.success('Порядок товаров обновлён');
+    } catch (error) {
+      console.error('Ошибка обновления порядка:', error);
+      toast.error('Не удалось обновить порядок');
+      loadProducts(); // Перезагружаем данные при ошибке
     }
   };
 
@@ -317,6 +450,7 @@ function ProductsPage() {
           <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
+              <th className="px-6 py-3 w-12"></th>
               <th className="px-6 py-3 w-16">ID</th>
               <th className="px-6 py-3">Название</th>
               <th className="px-6 py-3">Категория</th>
@@ -326,73 +460,24 @@ function ProductsPage() {
               <th className="px-6 py-3 w-16"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filteredProducts.map(product => (
-              <tr key={product.id} className="hover:bg-gray-50 transition-colors group">
-                <td className="px-6 py-3 text-gray-400 text-sm">#{product.id}</td>
-                <td className="px-6 py-3 font-medium text-gray-900">{product.name}</td>
-                <td className="px-6 py-3">
-                  {product.category_name || product.category ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                      {product.category_name || product.category}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400 text-sm">-</span>
-                  )}
-                </td>
-                <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">{product.price.toFixed(2)} ₸</td>
-                <td className="px-6 py-3">
-                  <button
-                    onClick={() => handleToggleAvailable(product)}
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
-                      product.is_available
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                        : 'bg-red-100 text-red-700 hover:bg-red-200'
-                    }`}
-                  >
-                    {product.is_available ? 'Доступен' : 'Недоступен'}
-                  </button>
-                </td>
-                <td className="px-6 py-3 text-center">
-                  {product.show_in_pos ? (
-                    <Eye size={16} className="inline text-green-600" />
-                  ) : (
-                    <EyeOff size={16} className="inline text-gray-400" />
-                  )}
-                </td>
-                <td className="px-6 py-3 text-right relative">
-                  <button
-                    onClick={() => setShowActionsMenu(showActionsMenu === product.id ? null : product.id)}
-                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                  >
-                    <MoreHorizontal size={18} />
-                  </button>
-                  {showActionsMenu === product.id && (
-                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                      <button
-                        onClick={() => {
-                          handleEdit(product);
-                          setShowActionsMenu(null);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
-                      >
-                        <Edit2 size={14} /> Изменить
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleDelete(product.id, product.name);
-                          setShowActionsMenu(null);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
-                      >
-                        <Trash2 size={14} /> Удалить
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={filteredProducts.map(p => p.id)} strategy={verticalListSortingStrategy}>
+              <tbody className="divide-y divide-gray-100">
+                {filteredProducts.map((product, index) => (
+                  <SortableProductRow
+                    key={product.id}
+                    product={product}
+                    isNearBottom={index >= filteredProducts.length - 2}
+                    showActionsMenu={showActionsMenu}
+                    onMenuToggle={setShowActionsMenu}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onToggleAvailable={handleToggleAvailable}
+                  />
+                ))}
+              </tbody>
+            </SortableContext>
+          </DndContext>
           </table>
         </div>
 

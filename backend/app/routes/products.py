@@ -25,7 +25,12 @@ def get_products(
     if available_only:
         query = query.filter(Product.is_available == True)
 
-    products = query.offset(skip).limit(limit).all()
+    # Сортируем по категории, порядку отображения и названию
+    products = query.order_by(
+        Product.category_id,
+        Product.display_order,
+        Product.name
+    ).offset(skip).limit(limit).all()
     return products
 
 
@@ -88,6 +93,20 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     db.delete(db_product)
     db.commit()
     return None
+
+
+@router.patch("/reorder")
+def reorder_products(order: List[dict], db: Session = Depends(get_db)):
+    """
+    Обновить порядок отображения товаров
+    Body: [{"id": 1, "display_order": 0}, {"id": 3, "display_order": 1}, ...]
+    """
+    for item in order:
+        product = db.query(Product).filter(Product.id == item["id"]).first()
+        if product:
+            product.display_order = item["display_order"]
+    db.commit()
+    return {"status": "ok", "updated": len(order)}
 
 
 @router.get("/categories/list", response_model=List[str])

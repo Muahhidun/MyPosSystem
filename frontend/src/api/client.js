@@ -204,6 +204,13 @@ class ApiClient {
     return this.request('/recipes/categories/list');
   }
 
+  async reorderRecipes(orderData) {
+    return this.request('/recipes/reorder', {
+      method: 'PATCH',
+      body: JSON.stringify(orderData),
+    });
+  }
+
   // Semifinished (Полуфабрикаты)
   async getSemifinished(params = {}) {
     const query = new URLSearchParams(params).toString();

@@ -85,7 +85,12 @@ def get_recipes(
     if category:
         query = query.filter(Recipe.category == category)
 
-    recipes = query.offset(skip).limit(limit).all()
+    # Сортируем по категории, порядку отображения и названию
+    recipes = query.order_by(
+        Recipe.category_id.asc().nulls_last(),
+        Recipe.display_order.asc(),
+        Recipe.name.asc()
+    ).offset(skip).limit(limit).all()
 
     # Формируем ответ для списка (без детализации ингредиентов)
     return [
@@ -101,6 +106,7 @@ def get_recipes(
             "markup_percentage": r.markup_percentage,
             "is_weight_based": r.is_weight_based,
             "exclude_from_discounts": r.exclude_from_discounts,
+            "show_in_pos": r.show_in_pos,
             "image_url": r.image_url,
             "created_at": r.created_at
         }

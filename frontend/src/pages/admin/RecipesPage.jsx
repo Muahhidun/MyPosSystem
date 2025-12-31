@@ -1,11 +1,101 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../../api/client';
-import { Search, Plus, X, Edit2, Trash2, ChefHat, Calculator, ChevronDown, MoreHorizontal, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Search, Plus, X, Edit2, Trash2, ChefHat, Calculator, ChevronDown, MoreHorizontal, Eye, EyeOff, ArrowLeft, GripVertical } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import AdminLayout from '../../components/AdminLayout';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Button } from '../../components/ui/Button';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable Recipe Row Component
+function SortableRecipeRow({ recipe, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleShowInPos }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: recipe.id
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    backgroundColor: isDragging ? '#f3f4f6' : 'transparent'
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className="hover:bg-gray-50 transition-colors group">
+      <td className="px-6 py-3">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab hover:text-blue-600 active:cursor-grabbing touch-none"
+        >
+          <GripVertical size={18} />
+        </button>
+      </td>
+      <td className="px-6 py-3 text-gray-400 text-sm">#{recipe.id}</td>
+      <td className="px-6 py-3 font-medium text-gray-900">{recipe.name}</td>
+      <td className="px-6 py-3">
+        {recipe.category_name || recipe.category ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+            {recipe.category_name || recipe.category}
+          </span>
+        ) : (
+          <span className="text-gray-400 text-sm">-</span>
+        )}
+      </td>
+      <td className="px-6 py-3 text-right text-sm text-gray-600">
+        {recipe.output_weight > 0 ? `${recipe.output_weight} г` : '-'}
+      </td>
+      <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">{recipe.cost.toFixed(2)} ₸</td>
+      <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">{recipe.price.toFixed(2)} ₸</td>
+      <td className="px-6 py-3 text-right">
+        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
+          recipe.markup_percentage > 100 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+        }`}>
+          {recipe.markup_percentage.toFixed(0)}%
+        </span>
+      </td>
+      <td className="px-6 py-3 text-right relative">
+        <button
+          onClick={() => onMenuToggle(recipe.id)}
+          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+        >
+          <MoreHorizontal size={18} />
+        </button>
+        {showActionsMenu === recipe.id && (
+          <div className={`absolute right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 ${
+            isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'
+          }`}>
+            <button
+              onClick={() => { onEdit(recipe); onMenuToggle(null); }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
+            >
+              <Edit2 size={14} /> Изменить
+            </button>
+            <button
+              onClick={() => { onToggleShowInPos(recipe); onMenuToggle(null); }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2"
+            >
+              {recipe.show_in_pos ? (
+                <><EyeOff size={14} /> Скрыть с кассы</>
+              ) : (
+                <><Eye size={14} /> Показать на кассе</>
+              )}
+            </button>
+            <button
+              onClick={() => { onDelete(recipe.id, recipe.name); onMenuToggle(null); }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+            >
+              <Trash2 size={14} /> Удалить
+            </button>
+          </div>
+        )}
+      </td>
+    </tr>
+  );
+}
 
 function RecipesPage() {
   const [recipes, setRecipes] = useState([]);
@@ -30,6 +120,11 @@ function RecipesPage() {
     ingredients: [],  // [{ id, ingredient_id, weight, cooking_method }]
     semifinished: []  // [{ id, semifinished_id, quantity }]
   });
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
 
   useEffect(() => {
     loadRecipes();
@@ -204,6 +299,46 @@ function RecipesPage() {
     } catch (error) {
       console.error('Ошибка обновления техкарты:', error);
       toast.error('Не удалось обновить техкарту');
+    }
+  };
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = filteredRecipes.findIndex(r => r.id === active.id);
+    const newIndex = filteredRecipes.findIndex(r => r.id === over.id);
+    const newRecipes = arrayMove(filteredRecipes, oldIndex, newIndex);
+
+    // Оптимистично обновляем UI
+    setRecipes(prevRecipes => {
+      const allRecipes = [...prevRecipes];
+      const filtered = allRecipes.filter(r =>
+        (!filterCategory || r.category_id?.toString() === filterCategory || r.category === filterCategory) &&
+        (!searchQuery || r.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      const reordered = arrayMove(filtered, oldIndex, newIndex);
+
+      // Обновляем display_order
+      reordered.forEach((recipe, index) => {
+        const original = allRecipes.find(r => r.id === recipe.id);
+        if (original) original.display_order = index;
+      });
+
+      return allRecipes;
+    });
+
+    try {
+      const orderUpdate = newRecipes.map((recipe, index) => ({
+        id: recipe.id,
+        display_order: index
+      }));
+      await api.reorderRecipes(orderUpdate);
+      toast.success('Порядок техкарт обновлён');
+    } catch (error) {
+      console.error('Ошибка обновления порядка:', error);
+      toast.error('Не удалось обновить порядок');
+      loadRecipes(); // Перезагружаем данные при ошибке
     }
   };
 
@@ -636,6 +771,7 @@ function RecipesPage() {
           <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
+              <th className="px-6 py-3 w-12"></th>
               <th className="px-6 py-3 w-16">ID</th>
               <th className="px-6 py-3">Название</th>
               <th className="px-6 py-3">Категория</th>
@@ -646,85 +782,24 @@ function RecipesPage() {
               <th className="px-6 py-3 w-16"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filteredRecipes.map((recipe, index) => {
-              // Определяем, является ли это одним из последних 2 элементов
-              const isNearBottom = index >= filteredRecipes.length - 2;
-
-              return (
-              <tr key={recipe.id} className="hover:bg-gray-50 transition-colors group">
-                <td className="px-6 py-3 text-gray-400 text-sm">#{recipe.id}</td>
-                <td className="px-6 py-3 font-medium text-gray-900">{recipe.name}</td>
-                <td className="px-6 py-3">
-                  {recipe.category_name || recipe.category ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                      {recipe.category_name || recipe.category}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400 text-sm">-</span>
-                  )}
-                </td>
-                <td className="px-6 py-3 text-right text-sm text-gray-600">
-                  {recipe.output_weight > 0 ? `${recipe.output_weight} г` : '-'}
-                </td>
-                <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">{recipe.cost.toFixed(2)} ₸</td>
-                <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">{recipe.price.toFixed(2)} ₸</td>
-                <td className="px-6 py-3 text-right">
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
-                    recipe.markup_percentage > 100 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {recipe.markup_percentage.toFixed(0)}%
-                  </span>
-                </td>
-                <td className="px-6 py-3 text-right relative">
-                  <button
-                    onClick={() => setShowActionsMenu(showActionsMenu === recipe.id ? null : recipe.id)}
-                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                  >
-                    <MoreHorizontal size={18} />
-                  </button>
-                  {showActionsMenu === recipe.id && (
-                    <div className={`absolute right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 ${
-                      isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'
-                    }`}>
-                      <button
-                        onClick={() => {
-                          handleEdit(recipe);
-                          setShowActionsMenu(null);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
-                      >
-                        <Edit2 size={14} /> Изменить
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleToggleShowInPos(recipe);
-                          setShowActionsMenu(null);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2"
-                      >
-                        {recipe.show_in_pos ? (
-                          <><EyeOff size={14} /> Скрыть с кассы</>
-                        ) : (
-                          <><Eye size={14} /> Показать на кассе</>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleDelete(recipe.id, recipe.name);
-                          setShowActionsMenu(null);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
-                      >
-                        <Trash2 size={14} /> Удалить
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-              );
-            })}
-          </tbody>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={filteredRecipes.map(r => r.id)} strategy={verticalListSortingStrategy}>
+              <tbody className="divide-y divide-gray-100">
+                {filteredRecipes.map((recipe, index) => (
+                  <SortableRecipeRow
+                    key={recipe.id}
+                    recipe={recipe}
+                    isNearBottom={index >= filteredRecipes.length - 2}
+                    showActionsMenu={showActionsMenu}
+                    onMenuToggle={setShowActionsMenu}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onToggleShowInPos={handleToggleShowInPos}
+                  />
+                ))}
+              </tbody>
+            </SortableContext>
+          </DndContext>
           </table>
         </div>
 

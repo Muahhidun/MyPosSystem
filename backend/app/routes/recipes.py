@@ -297,12 +297,16 @@ def reorder_recipes(order: List[dict], db: Session = Depends(get_db)):
     Обновить порядок отображения техкарт
     Body: [{"id": 1, "display_order": 0}, {"id": 3, "display_order": 1}, ...]
     """
+    updated_count = 0
     for item in order:
         recipe = db.query(Recipe).filter(Recipe.id == item["id"]).first()
         if recipe:
+            print(f"[REORDER] Updating recipe ID={recipe.id} '{recipe.name}': display_order {recipe.display_order} -> {item['display_order']}")
             recipe.display_order = item["display_order"]
+            updated_count += 1
     db.commit()
-    return {"status": "ok", "updated": len(order)}
+    print(f"[REORDER] Committed {updated_count} recipe updates to database")
+    return {"status": "ok", "updated": updated_count}
 
 
 @router.get("/categories/list", response_model=List[str])

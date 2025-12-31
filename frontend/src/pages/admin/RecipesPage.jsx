@@ -335,6 +335,8 @@ function RecipesPage() {
       }));
       await api.reorderRecipes(orderUpdate);
       toast.success('Порядок техкарт обновлён');
+      // Перезагружаем данные с сервера для синхронизации
+      await loadRecipes();
     } catch (error) {
       console.error('Ошибка обновления порядка:', error);
       toast.error('Не удалось обновить порядок');

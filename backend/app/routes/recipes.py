@@ -20,7 +20,9 @@ def _enrich_recipe_response(recipe: Recipe, db: Session) -> dict:
     recipe_dict = {
         "id": recipe.id,
         "name": recipe.name,
-        "category": recipe.category,
+        "category": recipe.category,  # DEPRECATED: для обратной совместимости
+        "category_id": recipe.category_id,
+        "category_name": recipe.category_rel.name if recipe.category_rel else None,
         "output_weight": recipe.output_weight,
         "price": recipe.price,
         "is_weight_based": recipe.is_weight_based,
@@ -90,7 +92,9 @@ def get_recipes(
         {
             "id": r.id,
             "name": r.name,
-            "category": r.category,
+            "category": r.category,  # DEPRECATED: для обратной совместимости
+            "category_id": r.category_id,
+            "category_name": r.category_rel.name if r.category_rel else None,
             "output_weight": r.output_weight,
             "price": r.price,
             "cost": r.cost,

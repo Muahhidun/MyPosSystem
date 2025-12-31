@@ -84,6 +84,104 @@ def migrate_ingredients_table():
         }
 
 
+@app.post("/api/admin/migrate-categories")
+def migrate_categories_table():
+    """
+    ВРЕМЕННЫЙ ENDPOINT для создания таблицы categories и добавления полей category_id/display_order
+    """
+    import os
+
+    try:
+        # Определяем тип БД
+        database_url = os.getenv('DATABASE_URL', '')
+        is_postgres = 'postgresql' in database_url.lower()
+
+        messages = []
+
+        with engine.connect() as conn:
+            # 1. Создаем таблицу categories
+            messages.append("📝 Создание таблицы categories...")
+
+            if is_postgres:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS categories (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR NOT NULL,
+                        type VARCHAR NOT NULL,
+                        display_order INTEGER NOT NULL DEFAULT 0,
+                        color VARCHAR,
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        updated_at TIMESTAMP WITH TIME ZONE
+                    )
+                """))
+            else:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS categories (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        type TEXT NOT NULL,
+                        display_order INTEGER NOT NULL DEFAULT 0,
+                        color TEXT,
+                        is_active INTEGER DEFAULT 1,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP
+                    )
+                """))
+
+            messages.append("✅ Таблица categories создана")
+
+            # 2. Добавляем поля в products
+            messages.append("📝 Добавление category_id и display_order в products...")
+            try:
+                conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS category_id INTEGER"))
+                conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0"))
+                messages.append("✅ Поля добавлены в products")
+            except Exception as e:
+                messages.append(f"⚠️ products: {str(e)}")
+
+            # 3. Добавляем поля в recipes
+            messages.append("📝 Добавление category_id и display_order в recipes...")
+            try:
+                conn.execute(text("ALTER TABLE recipes ADD COLUMN IF NOT EXISTS category_id INTEGER"))
+                conn.execute(text("ALTER TABLE recipes ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0"))
+                messages.append("✅ Поля добавлены в recipes")
+            except Exception as e:
+                messages.append(f"⚠️ recipes: {str(e)}")
+
+            # 4. Добавляем поля в ingredients
+            messages.append("📝 Добавление category_id и display_order в ingredients...")
+            try:
+                conn.execute(text("ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS category_id INTEGER"))
+                conn.execute(text("ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0"))
+                messages.append("✅ Поля добавлены в ingredients")
+            except Exception as e:
+                messages.append(f"⚠️ ingredients: {str(e)}")
+
+            # 5. Добавляем поля в semifinished
+            messages.append("📝 Добавление category_id и display_order в semifinished...")
+            try:
+                conn.execute(text("ALTER TABLE semifinished ADD COLUMN IF NOT EXISTS category_id INTEGER"))
+                conn.execute(text("ALTER TABLE semifinished ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0"))
+                messages.append("✅ Поля добавлены в semifinished")
+            except Exception as e:
+                messages.append(f"⚠️ semifinished: {str(e)}")
+
+            conn.commit()
+            messages.append("✅ Миграция завершена успешно!")
+
+        return {
+            "status": "success",
+            "messages": messages,
+            "database_type": "PostgreSQL" if is_postgres else "SQLite"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

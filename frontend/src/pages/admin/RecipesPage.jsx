@@ -21,7 +21,8 @@ function RecipesPage() {
 
   const [formData, setFormData] = useState({
     name: '',
-    category: '',
+    category: '',  // DEPRECATED: для обратной совместимости
+    category_id: null,
     price: '',
     is_weight_based: false,
     exclude_from_discounts: false,
@@ -70,7 +71,7 @@ function RecipesPage() {
 
   const loadCategories = async () => {
     try {
-      const data = await api.getRecipeCategories();
+      const data = await api.getAllCategories({ type: 'recipe', active_only: true });
       setCategories(data);
     } catch (error) {
       console.error('Ошибка загрузки категорий:', error);
@@ -88,7 +89,7 @@ function RecipesPage() {
     try {
       const data = {
         name: formData.name,
-        category: formData.category || null,
+        category_id: formData.category_id ? parseInt(formData.category_id) : null,
         output_weight: Math.round(calculateOutputWeight()),
         price: parseFloat(formData.price),
         is_weight_based: formData.is_weight_based,
@@ -119,7 +120,7 @@ function RecipesPage() {
         toast.success('Техкарта создана');
       }
 
-      setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [], semifinished: [] });
+      setFormData({ name: '', category: '', category_id: null, price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [], semifinished: [] });
       setEditingRecipe(null);
       setShowForm(false);
       loadRecipes();
@@ -136,7 +137,8 @@ function RecipesPage() {
       setEditingRecipe(fullRecipe);
       setFormData({
         name: fullRecipe.name,
-        category: fullRecipe.category || '',
+        category: fullRecipe.category || '',  // DEPRECATED: для обратной совместимости
+        category_id: fullRecipe.category_id || null,
         price: fullRecipe.price,
         is_weight_based: fullRecipe.is_weight_based,
         exclude_from_discounts: fullRecipe.exclude_from_discounts,
@@ -155,7 +157,8 @@ function RecipesPage() {
       });
       setShowForm(true);
     } catch (error) {
-      toast.error('Не удалось загрузить техкарту');
+      console.error('Ошибка загрузки техкарты:', error);
+      toast.error('Не удалось загрузить техкарту: ' + (error.message || ''));
     }
   };
 
@@ -315,8 +318,13 @@ function RecipesPage() {
     if (searchQuery && !recipe.name.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
-    if (filterCategory && recipe.category !== filterCategory) {
-      return false;
+    if (filterCategory) {
+      // Support both old category string and new category_id
+      const matchesOld = recipe.category === filterCategory;
+      const matchesNew = recipe.category_id && recipe.category_id.toString() === filterCategory;
+      if (!matchesOld && !matchesNew) {
+        return false;
+      }
     }
     return true;
   });
@@ -342,7 +350,7 @@ function RecipesPage() {
             onClick={() => {
               setShowForm(false);
               setEditingRecipe(null);
-              setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [], semifinished: [] });
+              setFormData({ name: '', category: '', category_id: null, price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [], semifinished: [] });
             }}
             className="flex items-center text-gray-500 hover:text-gray-900 mb-6 transition-colors"
           >
@@ -374,19 +382,18 @@ function RecipesPage() {
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                         Категория
                       </label>
-                      <input
-                        type="text"
-                        value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        placeholder="Чаи"
-                        list="categories-list"
-                      />
-                      <datalist id="categories-list">
+                      <select
+                        value={formData.category_id || ''}
+                        onChange={(e) => setFormData({ ...formData, category_id: e.target.value || null })}
+                        className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      >
+                        <option value="">Без категории</option>
                         {categories.map(cat => (
-                          <option key={cat} value={cat} />
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
                         ))}
-                      </datalist>
+                      </select>
                     </div>
                   </div>
 
@@ -564,7 +571,7 @@ function RecipesPage() {
                     onClick={() => {
                       setShowForm(false);
                       setEditingRecipe(null);
-                      setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [], semifinished: [] });
+                      setFormData({ name: '', category: '', category_id: null, price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [], semifinished: [] });
                     }}
                     className="w-full"
                   >
@@ -595,7 +602,7 @@ function RecipesPage() {
           onClick={() => {
             setShowForm(true);
             setEditingRecipe(null);
-            setFormData({ name: '', category: '', price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [], semifinished: [] });
+            setFormData({ name: '', category: '', category_id: null, price: '', is_weight_based: false, exclude_from_discounts: false, show_in_pos: true, ingredients: [], semifinished: [] });
           }}
         >
           <Plus size={18} /> Добавить техкарту
@@ -617,7 +624,7 @@ function RecipesPage() {
           <Select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
             <option value="">Все категории</option>
             {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
           </Select>
         </div>
@@ -645,9 +652,9 @@ function RecipesPage() {
                 <td className="px-6 py-3 text-gray-400 text-sm">#{recipe.id}</td>
                 <td className="px-6 py-3 font-medium text-gray-900">{recipe.name}</td>
                 <td className="px-6 py-3">
-                  {recipe.category ? (
+                  {recipe.category_name || recipe.category ? (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                      {recipe.category}
+                      {recipe.category_name || recipe.category}
                     </span>
                   ) : (
                     <span className="text-gray-400 text-sm">-</span>

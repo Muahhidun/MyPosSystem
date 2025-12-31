@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ChefHat, ScrollText, Settings, Package, Cookie, Folder } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ChefHat, ScrollText, Settings, Package, Cookie, Folder, Layers } from 'lucide-react';
 
 const AdminLayout = ({ children, title }) => {
   const navItems = [
@@ -9,6 +9,7 @@ const AdminLayout = ({ children, title }) => {
     { icon: <Package size={20} />, label: 'Ингредиенты', path: '/admin/ingredients' },
     { icon: <Cookie size={20} />, label: 'Полуфабрикаты', path: '/admin/semifinished' },
     { icon: <ScrollText size={20} />, label: 'Техкарты', path: '/admin/recipes' },
+    { icon: <Layers size={20} />, label: 'Модификации', path: '/admin/modifiers' },
     { icon: <Settings size={20} />, label: 'Настройки', path: '/admin/settings' },
   ];
 

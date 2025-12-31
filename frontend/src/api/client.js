@@ -290,6 +290,100 @@ class ApiClient {
   async getPOSCategories() {
     return this.request('/pos/categories');
   }
+
+  // Product Variants (Варианты товаров - размеры)
+  async getProductVariants(productId) {
+    return this.request(`/products/${productId}/variants`);
+  }
+
+  async createProductVariant(productId, data) {
+    return this.request(`/products/${productId}/variants`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateProductVariant(productId, variantId, data) {
+    return this.request(`/products/${productId}/variants/${variantId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProductVariant(productId, variantId) {
+    return this.request(`/products/${productId}/variants/${variantId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Modifier Groups (Группы модификаций)
+  async getModifierGroups(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/modifier-groups${query ? `?${query}` : ''}`);
+  }
+
+  async getModifierGroup(id) {
+    return this.request(`/modifier-groups/${id}`);
+  }
+
+  async createModifierGroup(data) {
+    return this.request('/modifier-groups', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateModifierGroup(id, data) {
+    return this.request(`/modifier-groups/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteModifierGroup(id) {
+    return this.request(`/modifier-groups/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Modifiers (Модификации в группе)
+  async createModifier(groupId, data) {
+    return this.request(`/modifier-groups/${groupId}/modifiers`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateModifier(groupId, modifierId, data) {
+    return this.request(`/modifier-groups/${groupId}/modifiers/${modifierId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteModifier(groupId, modifierId) {
+    return this.request(`/modifier-groups/${groupId}/modifiers/${modifierId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Product-Modifier Links (Привязка модификаторов к товарам)
+  async getProductModifiers(productId) {
+    return this.request(`/products/${productId}/modifiers`);
+  }
+
+  async linkModifierGroupToProduct(productId, data) {
+    return this.request(`/products/${productId}/modifiers`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async unlinkModifierGroupFromProduct(productId, groupId) {
+    return this.request(`/products/${productId}/modifiers/${groupId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export default new ApiClient();

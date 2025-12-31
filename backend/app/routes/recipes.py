@@ -85,9 +85,9 @@ def get_recipes(
     if category:
         query = query.filter(Recipe.category == category)
 
-    # Сортируем по категории, порядку отображения и названию
+    # Сортируем по порядку отображения и названию
+    # (В админке порядок задаётся вручную, категории не влияют на сортировку)
     recipes = query.order_by(
-        Recipe.category_id.asc().nulls_last(),
         Recipe.display_order.asc(),
         Recipe.name.asc()
     ).offset(skip).limit(limit).all()

@@ -26,6 +26,21 @@ from .semifinished import (
     SemifinishedIngredientCreate,
     SemifinishedIngredientResponse
 )
+from .product_variant import (
+    ProductVariantCreate,
+    ProductVariantUpdate,
+    ProductVariantResponse
+)
+from .modifier import (
+    ModifierCreate,
+    ModifierUpdate,
+    ModifierResponse,
+    ModifierGroupCreate,
+    ModifierGroupUpdate,
+    ModifierGroupResponse,
+    ProductModifierGroupCreate,
+    ProductModifierGroupResponse
+)
 
 __all__ = [
     "ProductCreate",
@@ -57,5 +72,16 @@ __all__ = [
     "SemifinishedResponse",
     "SemifinishedListItem",
     "SemifinishedIngredientCreate",
-    "SemifinishedIngredientResponse"
+    "SemifinishedIngredientResponse",
+    "ProductVariantCreate",
+    "ProductVariantUpdate",
+    "ProductVariantResponse",
+    "ModifierCreate",
+    "ModifierUpdate",
+    "ModifierResponse",
+    "ModifierGroupCreate",
+    "ModifierGroupUpdate",
+    "ModifierGroupResponse",
+    "ProductModifierGroupCreate",
+    "ProductModifierGroupResponse"
 ]

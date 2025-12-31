@@ -647,7 +647,11 @@ function RecipesPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredRecipes.map(recipe => (
+            {filteredRecipes.map((recipe, index) => {
+              // Определяем, является ли это одним из последних 2 элементов
+              const isNearBottom = index >= filteredRecipes.length - 2;
+
+              return (
               <tr key={recipe.id} className="hover:bg-gray-50 transition-colors group">
                 <td className="px-6 py-3 text-gray-400 text-sm">#{recipe.id}</td>
                 <td className="px-6 py-3 font-medium text-gray-900">{recipe.name}</td>
@@ -680,7 +684,9 @@ function RecipesPage() {
                     <MoreHorizontal size={18} />
                   </button>
                   {showActionsMenu === recipe.id && (
-                    <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    <div className={`absolute right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 ${
+                      isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'
+                    }`}>
                       <button
                         onClick={() => {
                           handleEdit(recipe);
@@ -716,7 +722,8 @@ function RecipesPage() {
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
           </table>
         </div>

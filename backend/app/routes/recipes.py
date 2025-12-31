@@ -80,7 +80,7 @@ def get_recipes(
     db: Session = Depends(get_db)
 ):
     """Получить список всех техкарт"""
-    query = db.query(Recipe)
+    query = db.query(Recipe).options(joinedload(Recipe.category_rel))
 
     if category:
         query = query.filter(Recipe.category == category)
@@ -112,7 +112,9 @@ def get_recipes(
 def get_recipe(recipe_id: int, db: Session = Depends(get_db)):
     """Получить техкарту по ID с полным составом"""
     recipe = db.query(Recipe).options(
-        joinedload(Recipe.ingredients)
+        joinedload(Recipe.ingredients),
+        joinedload(Recipe.semifinished_items),
+        joinedload(Recipe.category_rel)
     ).filter(Recipe.id == recipe_id).first()
 
     if not recipe:

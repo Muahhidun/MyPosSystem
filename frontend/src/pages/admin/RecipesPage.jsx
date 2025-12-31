@@ -98,7 +98,7 @@ function RecipesPage() {
         ingredients: formData.ingredients
           .filter(ing => ing.ingredient_id && ing.weight)
           .map(ing => ({
-            ingredient_id: ing.ingredient_id,
+            ingredient_id: parseInt(ing.ingredient_id),
             gross_weight: parseFloat(ing.weight) || 0,  // В граммах
             net_weight: parseFloat(ing.weight) || 0,    // В граммах (брутто = нетто)
             cooking_method: (ing.cooking_method && ing.cooking_method.trim()) ? ing.cooking_method.trim() : null,
@@ -107,7 +107,7 @@ function RecipesPage() {
         semifinished: formData.semifinished
           .filter(sf => sf.semifinished_id && sf.quantity)
           .map(sf => ({
-            semifinished_id: sf.semifinished_id,
+            semifinished_id: parseInt(sf.semifinished_id),
             quantity: parseFloat(sf.quantity) || 0  // В граммах/мл
           }))
       };

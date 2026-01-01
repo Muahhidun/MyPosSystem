@@ -58,16 +58,17 @@ function SortableRecipeRow({ recipe, isNearBottom, showActionsMenu, onMenuToggle
         </span>
       </td>
       <td className="px-6 py-3 text-right relative">
-        <button
-          onClick={() => onMenuToggle(recipe.id)}
-          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-        >
-          <MoreHorizontal size={18} />
-        </button>
-        {showActionsMenu === recipe.id && (
-          <div className={`absolute right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 ${
-            isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'
-          }`}>
+        <div className="actions-menu-container">
+          <button
+            onClick={() => onMenuToggle(recipe.id)}
+            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          >
+            <MoreHorizontal size={18} />
+          </button>
+          {showActionsMenu === recipe.id && (
+            <div className={`absolute right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 ${
+              isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'
+            }`}>
             <button
               onClick={() => { onEdit(recipe); onMenuToggle(null); }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
@@ -92,6 +93,7 @@ function SortableRecipeRow({ recipe, isNearBottom, showActionsMenu, onMenuToggle
             </button>
           </div>
         )}
+        </div>
       </td>
     </tr>
   );
@@ -132,6 +134,18 @@ function RecipesPage() {
     loadSemifinished();
     loadCategories();
   }, []);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showActionsMenu && !event.target.closest('.actions-menu-container')) {
+        setShowActionsMenu(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showActionsMenu]);
 
   const loadRecipes = async () => {
     try {

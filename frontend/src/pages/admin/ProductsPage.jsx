@@ -68,16 +68,17 @@ function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuTogg
         )}
       </td>
       <td className="px-6 py-3 text-right relative">
-        <button
-          onClick={() => onMenuToggle(product.id)}
-          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-        >
-          <MoreHorizontal size={18} />
-        </button>
-        {showActionsMenu === product.id && (
-          <div className={`absolute right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 ${
-            isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'
-          }`}>
+        <div className="actions-menu-container">
+          <button
+            onClick={() => onMenuToggle(product.id)}
+            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          >
+            <MoreHorizontal size={18} />
+          </button>
+          {showActionsMenu === product.id && (
+            <div className={`absolute right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 ${
+              isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'
+            }`}>
             <button
               onClick={() => { onEdit(product); onMenuToggle(null); }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
@@ -105,6 +106,7 @@ function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuTogg
             </button>
           </div>
         )}
+        </div>
       </td>
     </tr>
   );
@@ -139,6 +141,19 @@ function ProductsPage() {
     loadProducts();
     loadCategories();
   }, []);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if click is outside the menu
+      if (showActionsMenu && !event.target.closest('.actions-menu-container')) {
+        setShowActionsMenu(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showActionsMenu]);
 
   const loadProducts = async () => {
     try {

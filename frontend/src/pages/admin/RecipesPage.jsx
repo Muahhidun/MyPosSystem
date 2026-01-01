@@ -66,7 +66,7 @@ function SortableRecipeRow({ recipe, isNearBottom, showActionsMenu, onMenuToggle
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          {recipe.show_in_pos ? 'Показывать' : 'Скрыть'}
+          {recipe.show_in_pos ? 'Скрыть' : 'Показывать'}
         </button>
       </td>
       <td className="px-6 py-3 text-right relative">

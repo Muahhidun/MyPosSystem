@@ -11,7 +11,7 @@ import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } 
 import { CSS } from '@dnd-kit/utilities';
 
 // Sortable Recipe Row Component
-function SortableRecipeRow({ recipe, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleShowInPos }) {
+function SortableRecipeRow({ recipe, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleShowInPos, onToggleAvailable }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: recipe.id
   });
@@ -57,6 +57,18 @@ function SortableRecipeRow({ recipe, isNearBottom, showActionsMenu, onMenuToggle
           {recipe.markup_percentage.toFixed(0)}%
         </span>
       </td>
+      <td className="px-6 py-3">
+        <button
+          onClick={() => onToggleShowInPos(recipe)}
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+            recipe.show_in_pos
+              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          {recipe.show_in_pos ? 'Показывать' : 'Скрыть'}
+        </button>
+      </td>
       <td className="px-6 py-3 text-right relative">
         <div className="actions-menu-container">
           <button
@@ -75,14 +87,17 @@ function SortableRecipeRow({ recipe, isNearBottom, showActionsMenu, onMenuToggle
             >
               <Edit2 size={14} /> Изменить
             </button>
+            <div className="border-t border-gray-200 my-1"></div>
             <button
-              onClick={() => { onToggleShowInPos(recipe); onMenuToggle(null); }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2"
+              onClick={() => { onToggleAvailable(recipe); onMenuToggle(null); }}
+              className={`w-full text-left px-4 py-2 text-sm hover:bg-amber-50 flex items-center gap-2 ${
+                recipe.is_available ? 'text-gray-700 hover:text-amber-700' : 'text-amber-700'
+              }`}
             >
-              {recipe.show_in_pos ? (
-                <><EyeOff size={14} /> Скрыть с кассы</>
+              {recipe.is_available ? (
+                <><EyeOff size={14} /> Сделать недоступным</>
               ) : (
-                <><Eye size={14} /> Показать на кассе</>
+                <><Eye size={14} /> Сделать доступным</>
               )}
             </button>
             <button
@@ -289,7 +304,7 @@ function RecipesPage() {
 
   const handleToggleShowInPos = async (recipe) => {
     const newShowInPos = !recipe.show_in_pos;
-    const action = newShowInPos ? 'показывается' : 'скрыта';
+    const action = newShowInPos ? 'добавлена на кассу' : 'скрыта с кассы';
 
     try {
       await api.updateRecipe(recipe.id, {
@@ -308,7 +323,36 @@ function RecipesPage() {
           quantity: sf.quantity
         })) || []
       });
-      toast.success(`Техкарта "${recipe.name}" ${action} на кассе`);
+      toast.success(`Техкарта "${recipe.name}" ${action}`);
+      loadRecipes();
+    } catch (error) {
+      console.error('Ошибка обновления техкарты:', error);
+      toast.error('Не удалось обновить техкарту');
+    }
+  };
+
+  const handleToggleAvailable = async (recipe) => {
+    const newIsAvailable = !recipe.is_available;
+    const action = newIsAvailable ? 'сделана доступной' : 'сделана недоступной';
+
+    try {
+      await api.updateRecipe(recipe.id, {
+        ...recipe,
+        is_available: newIsAvailable,
+        // Преобразуем ingredients и semifinished в нужный формат
+        ingredients: recipe.ingredients.map(ing => ({
+          ingredient_id: ing.ingredient_id,
+          gross_weight: ing.gross_weight,
+          net_weight: ing.net_weight,
+          cooking_method: ing.cooking_method,
+          is_cleaned: ing.is_cleaned
+        })),
+        semifinished: recipe.semifinished_items?.map(sf => ({
+          semifinished_id: sf.semifinished_id,
+          quantity: sf.quantity
+        })) || []
+      });
+      toast.success(`Техкарта "${recipe.name}" ${action}`);
       loadRecipes();
     } catch (error) {
       console.error('Ошибка обновления техкарты:', error);
@@ -823,6 +867,7 @@ function RecipesPage() {
               <th className="px-6 py-3 text-right">Себестоимость</th>
               <th className="px-6 py-3 text-right">Цена</th>
               <th className="px-6 py-3 text-right">Наценка</th>
+              <th className="px-6 py-3">На кассе</th>
               <th className="px-6 py-3 w-16"></th>
             </tr>
           </thead>
@@ -839,6 +884,7 @@ function RecipesPage() {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onToggleShowInPos={handleToggleShowInPos}
+                    onToggleAvailable={handleToggleAvailable}
                   />
                 ))}
               </tbody>

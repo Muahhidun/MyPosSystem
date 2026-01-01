@@ -13,7 +13,7 @@ import VariantsModal from '../../components/VariantsModal';
 import ProductModifiersModal from '../../components/ProductModifiersModal';
 
 // Sortable Product Row Component
-function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleAvailable, onConfigureVariants, onConfigureModifiers }) {
+function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleShowInPos, onToggleAvailable, onConfigureVariants, onConfigureModifiers }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: product.id
   });
@@ -50,22 +50,15 @@ function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuTogg
       <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">{product.price.toFixed(2)} ₸</td>
       <td className="px-6 py-3">
         <button
-          onClick={() => onToggleAvailable(product)}
+          onClick={() => onToggleShowInPos(product)}
           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
-            product.is_available
+            product.show_in_pos
               ? 'bg-green-100 text-green-700 hover:bg-green-200'
-              : 'bg-red-100 text-red-700 hover:bg-red-200'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          {product.is_available ? 'Доступен' : 'Недоступен'}
+          {product.show_in_pos ? 'Показывать' : 'Скрыть'}
         </button>
-      </td>
-      <td className="px-6 py-3 text-center">
-        {product.show_in_pos ? (
-          <Eye size={16} className="inline text-green-600" />
-        ) : (
-          <EyeOff size={16} className="inline text-gray-400" />
-        )}
       </td>
       <td className="px-6 py-3 text-right relative">
         <div className="actions-menu-container">
@@ -98,6 +91,18 @@ function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuTogg
               <Layers size={14} /> Модификации
             </button>
             <div className="border-t border-gray-200 my-1"></div>
+            <button
+              onClick={() => { onToggleAvailable(product); onMenuToggle(null); }}
+              className={`w-full text-left px-4 py-2 text-sm hover:bg-amber-50 flex items-center gap-2 ${
+                product.is_available ? 'text-gray-700 hover:text-amber-700' : 'text-amber-700'
+              }`}
+            >
+              {product.is_available ? (
+                <><EyeOff size={14} /> Сделать недоступным</>
+              ) : (
+                <><Eye size={14} /> Сделать доступным</>
+              )}
+            </button>
             <button
               onClick={() => { onDelete(product.id, product.name); onMenuToggle(null); }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
@@ -257,12 +262,25 @@ function ProductsPage() {
     }
   };
 
+  const handleToggleShowInPos = async (product) => {
+    try {
+      await api.updateProduct(product.id, {
+        show_in_pos: !product.show_in_pos
+      });
+      toast.success(product.show_in_pos ? 'Товар скрыт с кассы' : 'Товар добавлен на кассу');
+      loadProducts();
+    } catch (error) {
+      console.error('Ошибка обновления товара:', error);
+      toast.error('Не удалось обновить товар');
+    }
+  };
+
   const handleToggleAvailable = async (product) => {
     try {
       await api.updateProduct(product.id, {
         is_available: !product.is_available
       });
-      toast.success(product.is_available ? 'Товар отключён' : 'Товар включён');
+      toast.success(product.is_available ? 'Товар сделан недоступным' : 'Товар сделан доступным');
       loadProducts();
     } catch (error) {
       console.error('Ошибка обновления товара:', error);
@@ -495,8 +513,7 @@ function ProductsPage() {
               <th className="px-6 py-3">Название</th>
               <th className="px-6 py-3">Категория</th>
               <th className="px-6 py-3 text-right">Цена</th>
-              <th className="px-6 py-3">Статус</th>
-              <th className="px-6 py-3 text-center w-16">POS</th>
+              <th className="px-6 py-3">На кассе</th>
               <th className="px-6 py-3 w-16"></th>
             </tr>
           </thead>
@@ -512,6 +529,7 @@ function ProductsPage() {
                     onMenuToggle={setShowActionsMenu}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    onToggleShowInPos={handleToggleShowInPos}
                     onToggleAvailable={handleToggleAvailable}
                     onConfigureVariants={handleConfigureVariants}
                     onConfigureModifiers={handleConfigureModifiers}

@@ -504,7 +504,7 @@ function ProductsPage() {
 
       {/* Таблица товаров */}
       <div className="bg-white border border-gray-200 rounded-b-xl shadow-sm">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" style={{ minHeight: '70vh' }}>
           <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">

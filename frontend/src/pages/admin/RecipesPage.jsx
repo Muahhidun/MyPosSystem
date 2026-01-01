@@ -308,20 +308,7 @@ function RecipesPage() {
 
     try {
       await api.updateRecipe(recipe.id, {
-        ...recipe,
-        show_in_pos: newShowInPos,
-        // Преобразуем ingredients и semifinished в нужный формат
-        ingredients: recipe.ingredients.map(ing => ({
-          ingredient_id: ing.ingredient_id,
-          gross_weight: ing.gross_weight,
-          net_weight: ing.net_weight,
-          cooking_method: ing.cooking_method,
-          is_cleaned: ing.is_cleaned
-        })),
-        semifinished: recipe.semifinished_items?.map(sf => ({
-          semifinished_id: sf.semifinished_id,
-          quantity: sf.quantity
-        })) || []
+        show_in_pos: newShowInPos
       });
       toast.success(`Техкарта "${recipe.name}" ${action}`);
       loadRecipes();
@@ -337,20 +324,7 @@ function RecipesPage() {
 
     try {
       await api.updateRecipe(recipe.id, {
-        ...recipe,
-        is_available: newIsAvailable,
-        // Преобразуем ingredients и semifinished в нужный формат
-        ingredients: recipe.ingredients.map(ing => ({
-          ingredient_id: ing.ingredient_id,
-          gross_weight: ing.gross_weight,
-          net_weight: ing.net_weight,
-          cooking_method: ing.cooking_method,
-          is_cleaned: ing.is_cleaned
-        })),
-        semifinished: recipe.semifinished_items?.map(sf => ({
-          semifinished_id: sf.semifinished_id,
-          quantity: sf.quantity
-        })) || []
+        is_available: newIsAvailable
       });
       toast.success(`Техкарта "${recipe.name}" ${action}`);
       loadRecipes();

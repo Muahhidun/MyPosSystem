@@ -108,6 +108,7 @@ class RecipeListItem(BaseModel):
     markup_percentage: float
     is_weight_based: bool
     exclude_from_discounts: bool
+    show_in_pos: bool
     image_url: Optional[str]
     created_at: datetime
 

@@ -306,10 +306,16 @@ function RecipesPage() {
     const newShowInPos = !recipe.show_in_pos;
     const action = newShowInPos ? 'добавлена на кассу' : 'скрыта с кассы';
 
+    console.log('🔵 Текущее значение show_in_pos:', recipe.show_in_pos);
+    console.log('🔵 Новое значение show_in_pos:', newShowInPos);
+
     try {
-      await api.updateRecipe(recipe.id, {
+      const response = await api.updateRecipe(recipe.id, {
         show_in_pos: newShowInPos
       });
+      console.log('🟢 Ответ от API:', response);
+      console.log('🟢 show_in_pos в ответе:', response.show_in_pos);
+
       toast.success(`Техкарта "${recipe.name}" ${action}`);
       loadRecipes();
     } catch (error) {

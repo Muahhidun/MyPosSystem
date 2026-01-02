@@ -285,8 +285,8 @@ def merge_pos_categories():
             for cat in product_categories + recipe_categories:
                 if cat.name not in merged_categories:
                     merged_categories[cat.name] = cat.id
-                    # Обновляем тип на 'pos' (строчными!)
-                    cat.type = CategoryType.POS
+                    # Обновляем тип на 'pos' (строчными!) - используем строку напрямую
+                    cat.type = 'pos'
                 else:
                     # Категория с таким именем уже есть - перенаправляем все товары/техкарты
                     target_id = merged_categories[cat.name]

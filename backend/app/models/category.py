@@ -1,11 +1,11 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-import enum
 from ..db import Base
 
 
-class CategoryType(str, enum.Enum):
+# Константы для типов категорий (вместо Enum чтобы избежать проблем с PostgreSQL)
+class CategoryType:
     """Типы категорий для разных сущностей"""
     POS = "pos"  # Общие категории для кассы (товары + техкарты)
     INGREDIENT = "ingredient"
@@ -27,7 +27,7 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, index=True)
-    type = Column(Enum(CategoryType), nullable=False)
+    type = Column(String, nullable=False)  # Используем String вместо Enum
     display_order = Column(Integer, nullable=False, default=0)  # Для сортировки на кассе
     color = Column(String, nullable=True)  # HEX цвет для UI (опционально)
     is_active = Column(Boolean, default=True)  # Показывать категорию

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 from ..db import get_db
-from ..models import Product, Recipe, Category, CategoryType, ProductVariant, ProductModifierGroup
+from ..models import Product, Recipe, Category, ProductVariant, ProductModifierGroup
 
 router = APIRouter(prefix="/pos", tags=["pos"])
 
@@ -99,7 +99,7 @@ def get_pos_categories(db: Session = Depends(get_db)):
     отсортированные по display_order
     """
     categories = db.query(Category).filter(
-        Category.type.in_([CategoryType.POS, CategoryType.PRODUCT, CategoryType.RECIPE]),
+        Category.type.in_(['pos', 'product', 'recipe']),
         Category.is_active == True
     ).order_by(Category.display_order.asc(), Category.name.asc()).all()
 

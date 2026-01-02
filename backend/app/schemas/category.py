@@ -1,13 +1,12 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
-from ..models.category import CategoryType
 
 
 class CategoryBase(BaseModel):
     """Базовая схема категории"""
     name: str = Field(..., min_length=1, max_length=100, description="Название категории")
-    type: CategoryType = Field(..., description="Тип категории (product/recipe/ingredient/semifinished)")
+    type: str = Field(..., description="Тип категории (pos/ingredient/semifinished)")
     color: Optional[str] = Field(None, max_length=7, description="HEX цвет (#FFFFFF)")
 
 

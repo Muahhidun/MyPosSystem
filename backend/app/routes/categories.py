@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..db import get_db
-from ..models import Category, CategoryType
+from ..models import Category
 from ..schemas import CategoryCreate, CategoryUpdate, CategoryResponse
 
 router = APIRouter(prefix="/categories", tags=["categories"])
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/categories", tags=["categories"])
 
 @router.get("", response_model=List[CategoryResponse])
 def get_categories(
-    type: Optional[CategoryType] = None,
+    type: Optional[str] = None,
     active_only: bool = True,
     db: Session = Depends(get_db)
 ):
@@ -18,7 +18,7 @@ def get_categories(
     Получить список категорий
 
     Параметры:
-    - type: фильтр по типу (product/recipe/ingredient/semifinished)
+    - type: фильтр по типу (pos/ingredient/semifinished)
     - active_only: показывать только активные категории
     """
     query = db.query(Category).order_by(Category.display_order, Category.name)

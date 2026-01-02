@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../../api/client';
-import { Search, Plus, X, Edit2, Trash2, ChefHat, Calculator, ChevronDown, MoreHorizontal, Eye, EyeOff, ArrowLeft, GripVertical } from 'lucide-react';
+import { Search, Plus, X, Edit2, Trash2, ChefHat, Calculator, ChevronDown, MoreHorizontal, ArrowLeft, GripVertical } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import AdminLayout from '../../components/AdminLayout';
 import { Input } from '../../components/ui/Input';
@@ -88,18 +88,6 @@ function SortableRecipeRow({ recipe, isNearBottom, showActionsMenu, onMenuToggle
               <Edit2 size={14} /> Изменить
             </button>
             <div className="border-t border-gray-200 my-1"></div>
-            <button
-              onClick={() => { onToggleAvailable(recipe); onMenuToggle(null); }}
-              className={`w-full text-left px-4 py-2 text-sm hover:bg-amber-50 flex items-center gap-2 ${
-                recipe.is_available ? 'text-gray-700 hover:text-amber-700' : 'text-amber-700'
-              }`}
-            >
-              {recipe.is_available ? (
-                <><EyeOff size={14} /> Сделать недоступным</>
-              ) : (
-                <><Eye size={14} /> Сделать доступным</>
-              )}
-            </button>
             <button
               onClick={() => { onDelete(recipe.id, recipe.name); onMenuToggle(null); }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
@@ -316,22 +304,6 @@ function RecipesPage() {
       console.log('🟢 Ответ от API:', response);
       console.log('🟢 show_in_pos в ответе:', response.show_in_pos);
 
-      toast.success(`Техкарта "${recipe.name}" ${action}`);
-      loadRecipes();
-    } catch (error) {
-      console.error('Ошибка обновления техкарты:', error);
-      toast.error('Не удалось обновить техкарту');
-    }
-  };
-
-  const handleToggleAvailable = async (recipe) => {
-    const newIsAvailable = !recipe.is_available;
-    const action = newIsAvailable ? 'сделана доступной' : 'сделана недоступной';
-
-    try {
-      await api.updateRecipe(recipe.id, {
-        is_available: newIsAvailable
-      });
       toast.success(`Техкарта "${recipe.name}" ${action}`);
       loadRecipes();
     } catch (error) {

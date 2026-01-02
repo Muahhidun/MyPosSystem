@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/client';
-import { Search, Plus, X, Edit2, Trash2, ShoppingBag, MoreHorizontal, ArrowLeft, Eye, EyeOff, GripVertical, Ruler, Layers } from 'lucide-react';
+import { Search, Plus, X, Edit2, Trash2, ShoppingBag, MoreHorizontal, ArrowLeft, GripVertical, Ruler, Layers } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import AdminLayout from '../../components/AdminLayout';
 import { Input } from '../../components/ui/Input';
@@ -91,18 +91,6 @@ function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuTogg
               <Layers size={14} /> Модификации
             </button>
             <div className="border-t border-gray-200 my-1"></div>
-            <button
-              onClick={() => { onToggleAvailable(product); onMenuToggle(null); }}
-              className={`w-full text-left px-4 py-2 text-sm hover:bg-amber-50 flex items-center gap-2 ${
-                product.is_available ? 'text-gray-700 hover:text-amber-700' : 'text-amber-700'
-              }`}
-            >
-              {product.is_available ? (
-                <><EyeOff size={14} /> Сделать недоступным</>
-              ) : (
-                <><Eye size={14} /> Сделать доступным</>
-              )}
-            </button>
             <button
               onClick={() => { onDelete(product.id, product.name); onMenuToggle(null); }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
@@ -268,19 +256,6 @@ function ProductsPage() {
         show_in_pos: !product.show_in_pos
       });
       toast.success(product.show_in_pos ? 'Товар скрыт с кассы' : 'Товар добавлен на кассу');
-      loadProducts();
-    } catch (error) {
-      console.error('Ошибка обновления товара:', error);
-      toast.error('Не удалось обновить товар');
-    }
-  };
-
-  const handleToggleAvailable = async (product) => {
-    try {
-      await api.updateProduct(product.id, {
-        is_available: !product.is_available
-      });
-      toast.success(product.is_available ? 'Товар сделан недоступным' : 'Товар сделан доступным');
       loadProducts();
     } catch (error) {
       console.error('Ошибка обновления товара:', error);

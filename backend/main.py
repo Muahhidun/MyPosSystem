@@ -12,7 +12,9 @@ from app.routes import (
     pos_router,
     categories_router,
     product_variants_router,
-    modifiers_router
+    modifiers_router,
+    locations_router,
+    stock_router
 )
 
 # Создаем таблицы в БД
@@ -34,6 +36,8 @@ app.add_middleware(
 )
 
 # Подключаем роутеры
+app.include_router(locations_router, prefix="/api")  # Multi-location support
+app.include_router(stock_router, prefix="/api")  # Stock management (multi-location)
 app.include_router(products_router, prefix="/api")
 app.include_router(orders_router, prefix="/api")
 app.include_router(settings_router, prefix="/api")

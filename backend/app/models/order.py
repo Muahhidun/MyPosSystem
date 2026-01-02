@@ -24,12 +24,19 @@ class Order(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     order_number = Column(String, unique=True, index=True)  # Номер чека
+
+    # MULTI-LOCATION: ID точки, на которой создан заказ
+    location_id = Column(Integer, ForeignKey("locations.id", ondelete="RESTRICT"), nullable=False, default=1, index=True)
+
     total_amount = Column(Float, nullable=False)  # Общая сумма
     payment_method = Column(Enum(PaymentMethod), nullable=False)
     status = Column(Enum(OrderStatus), default=OrderStatus.PENDING)
     items = Column(JSON, nullable=False)  # Список товаров в заказе
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    location = relationship("Location", back_populates="orders")
 
     def __repr__(self):
         return f"<Order #{self.order_number}>"

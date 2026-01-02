@@ -41,6 +41,18 @@ from .modifier import (
     ProductModifierGroupCreate,
     ProductModifierGroupResponse
 )
+from .location import (
+    LocationCreate,
+    LocationUpdate,
+    LocationResponse
+)
+from .stock import (
+    StockCreate,
+    StockUpdate,
+    StockAdjust,
+    StockResponse,
+    StockListItem
+)
 
 __all__ = [
     "ProductCreate",
@@ -83,5 +95,13 @@ __all__ = [
     "ModifierGroupUpdate",
     "ModifierGroupResponse",
     "ProductModifierGroupCreate",
-    "ProductModifierGroupResponse"
+    "ProductModifierGroupResponse",
+    "LocationCreate",
+    "LocationUpdate",
+    "LocationResponse",
+    "StockCreate",
+    "StockUpdate",
+    "StockAdjust",
+    "StockResponse",
+    "StockListItem"
 ]

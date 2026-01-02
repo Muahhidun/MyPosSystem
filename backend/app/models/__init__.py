@@ -7,6 +7,8 @@ from .semifinished import Semifinished, SemifinishedIngredient, RecipeSemifinish
 from .category import Category, CategoryType
 from .product_variant import ProductVariant
 from .modifier import ModifierGroup, Modifier, ProductModifierGroup, ModifierSelectionType
+from .location import Location
+from .stock import Stock
 
 __all__ = [
     "Product",
@@ -28,5 +30,7 @@ __all__ = [
     "ModifierGroup",
     "Modifier",
     "ProductModifierGroup",
-    "ModifierSelectionType"
+    "ModifierSelectionType",
+    "Location",
+    "Stock"
 ]

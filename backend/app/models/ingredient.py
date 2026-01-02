@@ -34,10 +34,14 @@ class Ingredient(Base):
     # Например: "Коробка 12 банок по 1.2кг, цена коробки 33600₸"
     packaging_info = Column(Text, nullable=True)
 
-    # Цены и остатки
+    # Цены
     purchase_price = Column(Float, nullable=False, default=0.0)  # Закупочная цена за единицу
-    stock_quantity = Column(Float, nullable=False, default=0.0)  # Текущий остаток
-    min_stock = Column(Float, nullable=False, default=0.0)  # Минимальный остаток (используется в модуле закупок)
+
+    # DEPRECATED: Остатки перенесены в таблицу Stock (multi-location support)
+    # Эти поля оставлены для обратной совместимости, но не используются
+    # Используйте Stock.quantity вместо Ingredient.stock_quantity
+    stock_quantity = Column(Float, nullable=True, default=0.0)  # DEPRECATED
+    min_stock = Column(Float, nullable=True, default=0.0)  # DEPRECATED
 
     # Метаданные
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -47,19 +51,26 @@ class Ingredient(Base):
     category_rel = relationship("Category", back_populates="ingredients")
 
     def __repr__(self):
-        return f"<Ingredient {self.name} ({self.stock_quantity} {self.unit})>"
+        return f"<Ingredient {self.name} ({self.unit})>"
 
     @property
     def is_piece_unit(self):
         """Проверка: штучный ли товар?"""
         return self.unit == "шт"
 
+    # DEPRECATED properties - используйте Stock вместо этого
     @property
     def is_low_stock(self):
-        """Проверка: остаток ниже минимального?"""
-        return self.stock_quantity <= self.min_stock
+        """
+        DEPRECATED: Проверка остатка.
+        Используйте Stock.is_low_stock вместо этого метода.
+        """
+        return self.stock_quantity <= self.min_stock if self.stock_quantity and self.min_stock else False
 
     @property
     def stock_value(self):
-        """Стоимость текущего остатка"""
-        return self.stock_quantity * self.purchase_price
+        """
+        DEPRECATED: Стоимость остатка.
+        Используйте Stock.stock_value вместо этого метода.
+        """
+        return self.stock_quantity * self.purchase_price if self.stock_quantity else 0.0

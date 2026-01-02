@@ -337,6 +337,209 @@ def merge_pos_categories():
         }
 
 
+@app.post("/api/admin/migrate-multi-location")
+def migrate_multi_location():
+    """
+    ВРЕМЕННЫЙ ENDPOINT для миграции к multi-location архитектуре
+    Создает таблицы locations и stocks, переносит данные
+    """
+    import os
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy import inspect
+    from app.models import Location, Stock, Ingredient, Order
+
+    database_url = os.getenv('DATABASE_URL', '')
+    if not database_url:
+        return {"status": "error", "message": "DATABASE_URL not set"}
+
+    is_postgres = 'postgresql' in database_url.lower()
+    messages = []
+
+    try:
+        messages.append(f"📊 База данных: {'PostgreSQL' if is_postgres else 'SQLite'}")
+
+        # Проверяем существование таблиц
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+
+        # Шаг 1: Создать таблицу locations
+        messages.append("📝 Шаг 1: Создание таблицы locations...")
+        if 'locations' not in existing_tables:
+            with engine.connect() as conn:
+                if is_postgres:
+                    conn.execute(text("""
+                        CREATE TABLE locations (
+                            id SERIAL PRIMARY KEY,
+                            name VARCHAR NOT NULL,
+                            address VARCHAR,
+                            phone VARCHAR,
+                            is_active BOOLEAN DEFAULT TRUE,
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                            updated_at TIMESTAMP WITH TIME ZONE
+                        )
+                    """))
+                else:
+                    conn.execute(text("""
+                        CREATE TABLE locations (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name TEXT NOT NULL,
+                            address TEXT,
+                            phone TEXT,
+                            is_active INTEGER DEFAULT 1,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP
+                        )
+                    """))
+                conn.commit()
+            messages.append("   ✅ Таблица locations создана")
+        else:
+            messages.append("   ⚠️  Таблица locations уже существует")
+
+        # Шаг 2: Создать дефолтную точку
+        Session = sessionmaker(bind=engine)
+        db = Session()
+
+        try:
+            messages.append("📍 Шаг 2: Создание дефолтной точки...")
+            default_location = db.query(Location).filter(Location.id == 1).first()
+            if not default_location:
+                default_location = Location(
+                    id=1,
+                    name="Основная точка",
+                    address=None,
+                    phone=None,
+                    is_active=True
+                )
+                db.add(default_location)
+                db.commit()
+                messages.append("   ✅ Создана точка #1: 'Основная точка'")
+            else:
+                messages.append(f"   ⚠️  Точка #1 уже существует: '{default_location.name}'")
+
+            # Шаг 3: Создать таблицу stocks
+            messages.append("📦 Шаг 3: Создание таблицы stocks...")
+            if 'stocks' not in existing_tables:
+                with engine.connect() as conn:
+                    if is_postgres:
+                        conn.execute(text("""
+                            CREATE TABLE stocks (
+                                id SERIAL PRIMARY KEY,
+                                location_id INTEGER NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+                                ingredient_id INTEGER NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
+                                quantity FLOAT NOT NULL DEFAULT 0.0,
+                                min_stock FLOAT NOT NULL DEFAULT 0.0,
+                                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                                updated_at TIMESTAMP WITH TIME ZONE,
+                                UNIQUE(location_id, ingredient_id)
+                            )
+                        """))
+                        conn.execute(text("CREATE INDEX idx_stocks_location ON stocks(location_id)"))
+                        conn.execute(text("CREATE INDEX idx_stocks_ingredient ON stocks(ingredient_id)"))
+                    else:
+                        conn.execute(text("""
+                            CREATE TABLE stocks (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                location_id INTEGER NOT NULL,
+                                ingredient_id INTEGER NOT NULL,
+                                quantity REAL NOT NULL DEFAULT 0.0,
+                                min_stock REAL NOT NULL DEFAULT 0.0,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                updated_at TIMESTAMP,
+                                FOREIGN KEY(location_id) REFERENCES locations(id) ON DELETE CASCADE,
+                                FOREIGN KEY(ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE,
+                                UNIQUE(location_id, ingredient_id)
+                            )
+                        """))
+                        conn.execute(text("CREATE INDEX idx_stocks_location ON stocks(location_id)"))
+                        conn.execute(text("CREATE INDEX idx_stocks_ingredient ON stocks(ingredient_id)"))
+                    conn.commit()
+                messages.append("   ✅ Таблица stocks создана")
+            else:
+                messages.append("   ⚠️  Таблица stocks уже существует")
+
+            # Шаг 4: Перенести остатки из Ingredient в Stock
+            messages.append("🔄 Шаг 4: Перенос остатков из Ingredient в Stock...")
+            ingredients = db.query(Ingredient).all()
+            migrated_count = 0
+            skipped_count = 0
+
+            for ingredient in ingredients:
+                existing_stock = db.query(Stock).filter(
+                    Stock.location_id == 1,
+                    Stock.ingredient_id == ingredient.id
+                ).first()
+
+                if existing_stock:
+                    skipped_count += 1
+                    continue
+
+                if ingredient.stock_quantity is not None and ingredient.stock_quantity > 0:
+                    stock = Stock(
+                        location_id=1,
+                        ingredient_id=ingredient.id,
+                        quantity=ingredient.stock_quantity or 0.0,
+                        min_stock=ingredient.min_stock or 0.0
+                    )
+                    db.add(stock)
+                    migrated_count += 1
+
+            db.commit()
+            messages.append(f"   ✅ Перенесено остатков: {migrated_count}")
+            messages.append(f"   ⚠️  Пропущено (уже существуют): {skipped_count}")
+
+            # Шаг 5: Добавить location_id в orders
+            messages.append("📋 Шаг 5: Добавление location_id в orders...")
+            try:
+                with engine.connect() as conn:
+                    if is_postgres:
+                        conn.execute(text("""
+                            ALTER TABLE orders
+                            ADD COLUMN IF NOT EXISTS location_id INTEGER
+                            REFERENCES locations(id) ON DELETE RESTRICT DEFAULT 1
+                        """))
+                    else:
+                        try:
+                            conn.execute(text("ALTER TABLE orders ADD COLUMN location_id INTEGER DEFAULT 1"))
+                        except Exception as e:
+                            if "duplicate column" not in str(e).lower():
+                                raise
+
+                    conn.commit()
+                messages.append("   ✅ Поле location_id добавлено в orders")
+
+                # Обновляем существующие заказы
+                with engine.connect() as conn:
+                    result = conn.execute(text("UPDATE orders SET location_id = 1 WHERE location_id IS NULL"))
+                    conn.commit()
+                    updated = result.rowcount
+                    if updated > 0:
+                        messages.append(f"   ✅ Обновлено заказов: {updated}")
+
+            except Exception as e:
+                messages.append(f"   ⚠️  Ошибка с orders: {str(e)}")
+
+            messages.append("✅ МИГРАЦИЯ УСПЕШНО ЗАВЕРШЕНА!")
+            messages.append(f"📊 Итого: {len(ingredients)} ингредиентов, {migrated_count} остатков перенесено")
+
+            return {
+                "status": "success",
+                "messages": messages
+            }
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        messages.append(f"❌ ОШИБКА: {str(e)}")
+        import traceback
+        messages.append(traceback.format_exc())
+        return {
+            "status": "error",
+            "messages": messages,
+            "error": str(e)
+        }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

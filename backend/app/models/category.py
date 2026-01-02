@@ -10,9 +10,8 @@ class CategoryType(str, enum.Enum):
     POS = "pos"  # Общие категории для кассы (товары + техкарты)
     INGREDIENT = "ingredient"
     SEMIFINISHED = "semifinished"
-    # DEPRECATED (оставлены для обратной совместимости):
-    PRODUCT = "product"
-    RECIPE = "recipe"
+    PRODUCT = "product"  # DEPRECATED: для обратной совместимости
+    RECIPE = "recipe"  # DEPRECATED: для обратной совместимости
 
 
 class Category(Base):

@@ -285,19 +285,22 @@ def merge_pos_categories():
             for cat in product_categories + recipe_categories:
                 if cat.name not in merged_categories:
                     merged_categories[cat.name] = cat.id
-                    # Обновляем тип на 'pos' (строчными!) - используем строку напрямую
-                    cat.type = 'pos'
                 else:
                     # Категория с таким именем уже есть - перенаправляем все товары/техкарты
                     target_id = merged_categories[cat.name]
 
                     # Переназначаем товары
-                    db.query(Product).filter(Product.category_id == cat.id).update({'category_id': target_id})
+                    db.execute(text(f"UPDATE products SET category_id = {target_id} WHERE category_id = {cat.id}"))
                     # Переназначаем техкарты
-                    db.query(Recipe).filter(Recipe.category_id == cat.id).update({'category_id': target_id})
+                    db.execute(text(f"UPDATE recipes SET category_id = {target_id} WHERE category_id = {cat.id}"))
 
                     # Удаляем дубликат
                     db.delete(cat)
+
+            # Обновляем тип всех категорий напрямую через SQL (без ORM)
+            messages.append("🔄 Обновляем тип категорий на 'pos'...")
+            for cat_id in merged_categories.values():
+                db.execute(text(f"UPDATE categories SET type = 'pos' WHERE id = {cat_id}"))
 
             db.commit()
             messages.append(f"✅ Объединено категорий: {len(merged_categories)}")

@@ -95,11 +95,11 @@ def get_pos_categories(db: Session = Depends(get_db)):
     """
     Получить категории для отображения на кассе
 
-    Возвращает только активные категории типа PRODUCT и RECIPE,
+    Возвращает только активные категории типа POS (или PRODUCT/RECIPE для обратной совместимости),
     отсортированные по display_order
     """
     categories = db.query(Category).filter(
-        Category.type.in_([CategoryType.PRODUCT, CategoryType.RECIPE]),
+        Category.type.in_([CategoryType.POS, CategoryType.PRODUCT, CategoryType.RECIPE]),
         Category.is_active == True
     ).order_by(Category.display_order.asc(), Category.name.asc()).all()
 

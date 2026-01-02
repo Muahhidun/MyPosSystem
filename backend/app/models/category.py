@@ -7,10 +7,12 @@ from ..db import Base
 
 class CategoryType(str, enum.Enum):
     """Типы категорий для разных сущностей"""
-    PRODUCT = "product"
-    RECIPE = "recipe"
+    POS = "pos"  # Общие категории для кассы (товары + техкарты)
     INGREDIENT = "ingredient"
     SEMIFINISHED = "semifinished"
+    # DEPRECATED (оставлены для обратной совместимости):
+    PRODUCT = "product"
+    RECIPE = "recipe"
 
 
 class Category(Base):
@@ -18,9 +20,9 @@ class Category(Base):
     Категория для товаров/техкарт/ингредиентов/полуфабрикатов
 
     Примеры:
-    - Категория товаров: "Напитки", "Закуски"
-    - Категория техкарт: "Пиццы", "Бургеры"
+    - Категория кассы (POS): "Напитки", "Закуски" (используется для товаров И техкарт)
     - Категория ингредиентов: "Молочные", "Кофе"
+    - Категория полуфабрикатов: "Соусы", "Заготовки"
     """
     __tablename__ = "categories"
 

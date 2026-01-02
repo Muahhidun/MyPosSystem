@@ -239,6 +239,93 @@ def migrate_modifiers_tables():
         }
 
 
+@app.post("/api/admin/merge-pos-categories")
+def merge_pos_categories():
+    """
+    ВРЕМЕННЫЙ ENDPOINT для объединения категорий товаров и техкарт в общий тип POS
+    """
+    import os
+    import sys
+
+    try:
+        messages = []
+
+        # Добавляем значение 'pos' в ENUM categorytype
+        messages.append("🔧 Добавляем значение 'pos' в ENUM categorytype...")
+        with engine.connect() as conn:
+            try:
+                conn.execute(text("ALTER TYPE categorytype ADD VALUE IF NOT EXISTS 'pos'"))
+                conn.commit()
+                messages.append("✅ Значение 'pos' добавлено в ENUM")
+            except Exception as e:
+                messages.append(f"⚠️  ENUM: {str(e)}")
+                conn.rollback()
+
+        # Запускаем миграцию через импорт
+        messages.append("📝 Запуск миграции объединения категорий...")
+
+        # Импортируем необходимые модели
+        from sqlalchemy.orm import sessionmaker
+        from app.models import Category, Product, Recipe
+
+        Session = sessionmaker(bind=engine)
+        db = Session()
+
+        try:
+            # Получаем категории product/recipe
+            product_categories = db.query(Category).filter(Category.type == 'product').all()
+            recipe_categories = db.query(Category).filter(Category.type == 'recipe').all()
+
+            messages.append(f"📊 Найдено категорий товаров: {len(product_categories)}")
+            messages.append(f"📊 Найдено категорий техкарт: {len(recipe_categories)}")
+
+            # Объединяем категории с одинаковыми именами
+            merged_categories = {}
+
+            for cat in product_categories + recipe_categories:
+                if cat.name not in merged_categories:
+                    merged_categories[cat.name] = cat.id
+                    # Обновляем тип на 'pos'
+                    cat.type = 'pos'
+                else:
+                    # Категория с таким именем уже есть - перенаправляем все товары/техкарты
+                    target_id = merged_categories[cat.name]
+
+                    # Переназначаем товары
+                    db.query(Product).filter(Product.category_id == cat.id).update({'category_id': target_id})
+                    # Переназначаем техкарты
+                    db.query(Recipe).filter(Recipe.category_id == cat.id).update({'category_id': target_id})
+
+                    # Удаляем дубликат
+                    db.delete(cat)
+
+            db.commit()
+            messages.append(f"✅ Объединено категорий: {len(merged_categories)}")
+            messages.append(f"📊 Итого категорий POS: {db.query(Category).filter(Category.type == 'pos').count()}")
+
+            return {
+                "status": "success",
+                "messages": messages
+            }
+
+        except Exception as e:
+            db.rollback()
+            messages.append(f"❌ Ошибка: {str(e)}")
+            return {
+                "status": "error",
+                "messages": messages,
+                "error": str(e)
+            }
+        finally:
+            db.close()
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

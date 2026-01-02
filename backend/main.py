@@ -266,7 +266,7 @@ def merge_pos_categories():
 
         # Импортируем необходимые модели
         from sqlalchemy.orm import sessionmaker
-        from app.models import Category, Product, Recipe
+        from app.models import Category, Product, Recipe, CategoryType
 
         Session = sessionmaker(bind=engine)
         db = Session()

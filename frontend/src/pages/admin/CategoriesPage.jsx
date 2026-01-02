@@ -22,10 +22,12 @@ function SortableCategoryRow({ category, onEdit, onDelete }) {
 
   const getTypeLabel = (type) => {
     const labels = {
-      product: 'Товары',
-      recipe: 'Техкарты',
+      pos: 'POS (Касса)',
       ingredient: 'Ингредиенты',
-      semifinished: 'Полуфабрикаты'
+      semifinished: 'Полуфабрикаты',
+      // Для обратной совместимости:
+      product: 'Товары (устаревшее)',
+      recipe: 'Техкарты (устаревшее)'
     };
     return labels[type] || type;
   };
@@ -102,8 +104,7 @@ function CategoryFormModal({ category, onClose, onSave, categoryType }) {
   };
 
   const typeOptions = [
-    { value: 'product', label: 'Товары' },
-    { value: 'recipe', label: 'Техкарты' },
+    { value: 'pos', label: 'POS (Касса - товары и техкарты)' },
     { value: 'ingredient', label: 'Ингредиенты' },
     { value: 'semifinished', label: 'Полуфабрикаты' }
   ];
@@ -217,7 +218,7 @@ function CategoriesPage() {
   const [categories, setCategories] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedType, setSelectedType] = useState('product');
+  const [selectedType, setSelectedType] = useState('pos');
   const [loading, setLoading] = useState(false);
 
   const sensors = useSensors(
@@ -307,8 +308,7 @@ function CategoriesPage() {
   };
 
   const typeButtons = [
-    { value: 'product', label: 'Товары' },
-    { value: 'recipe', label: 'Техкарты' },
+    { value: 'pos', label: 'POS (Касса)' },
     { value: 'ingredient', label: 'Ингредиенты' },
     { value: 'semifinished', label: 'Полуфабрикаты' }
   ];

@@ -183,7 +183,7 @@ function RecipesPage() {
 
   const loadCategories = async () => {
     try {
-      const data = await api.getAllCategories({ type: 'recipe', active_only: true });
+      const data = await api.getAllCategories({ type: 'pos', active_only: true });
       setCategories(data);
     } catch (error) {
       console.error('Ошибка загрузки категорий:', error);

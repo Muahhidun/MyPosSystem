@@ -10,6 +10,7 @@ from .product_variants import router as product_variants_router
 from .modifiers import router as modifiers_router
 from .locations import router as locations_router
 from .stock import router as stock_router
+from .websocket import router as websocket_router
 
 __all__ = [
     "products_router",
@@ -23,5 +24,6 @@ __all__ = [
     "product_variants_router",
     "modifiers_router",
     "locations_router",
-    "stock_router"
+    "stock_router",
+    "websocket_router"
 ]

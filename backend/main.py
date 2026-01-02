@@ -14,7 +14,8 @@ from app.routes import (
     product_variants_router,
     modifiers_router,
     locations_router,
-    stock_router
+    stock_router,
+    websocket_router
 )
 
 # Создаем таблицы в БД
@@ -36,6 +37,7 @@ app.add_middleware(
 )
 
 # Подключаем роутеры
+app.include_router(websocket_router, prefix="/api")  # WebSocket для Kitchen Display
 app.include_router(locations_router, prefix="/api")  # Multi-location support
 app.include_router(stock_router, prefix="/api")  # Stock management (multi-location)
 app.include_router(products_router, prefix="/api")

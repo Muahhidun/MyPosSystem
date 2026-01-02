@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from typing import List
@@ -7,6 +7,7 @@ from ..db import get_db
 from ..models import Order, OrderItem, Product, Recipe, OrderStatus, ItemType
 from ..schemas import OrderCreate, OrderResponse, OrderStats
 import uuid
+import asyncio
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -19,7 +20,7 @@ def generate_order_number() -> str:
 
 
 @router.post("", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
-def create_order(order_data: OrderCreate, db: Session = Depends(get_db)):
+async def create_order(order_data: OrderCreate, db: Session = Depends(get_db)):
     """Создать новый заказ"""
     # Проверяем наличие товаров/техкарт и считаем сумму
     order_items_data = []
@@ -97,6 +98,29 @@ def create_order(order_data: OrderCreate, db: Session = Depends(get_db)):
 
     db.commit()
     db.refresh(db_order)
+
+    # Broadcast новый заказ на кухню через WebSocket
+    from .websocket import manager
+    await manager.broadcast({
+        "type": "new_order",
+        "order": {
+            "id": db_order.id,
+            "order_number": db_order.order_number,
+            "total_amount": db_order.total_amount,
+            "payment_method": db_order.payment_method.value,
+            "status": db_order.status.value,
+            "items": [
+                {
+                    "item_name": item["item_name"],
+                    "quantity": item["quantity"],
+                    "price": item["price"]
+                }
+                for item in order_items_data
+            ],
+            "created_at": db_order.created_at.isoformat()
+        }
+    })
+
     return db_order
 
 

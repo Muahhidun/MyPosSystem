@@ -11,7 +11,7 @@ import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } 
 import { CSS } from '@dnd-kit/utilities';
 
 // Sortable Recipe Row Component
-function SortableRecipeRow({ recipe, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleShowInPos, onToggleAvailable }) {
+function SortableRecipeRow({ recipe, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleShowInPos }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: recipe.id
   });
@@ -836,7 +836,6 @@ function RecipesPage() {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onToggleShowInPos={handleToggleShowInPos}
-                    onToggleAvailable={handleToggleAvailable}
                   />
                 ))}
               </tbody>

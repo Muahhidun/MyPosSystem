@@ -13,7 +13,7 @@ import VariantsModal from '../../components/VariantsModal';
 import ProductModifiersModal from '../../components/ProductModifiersModal';
 
 // Sortable Product Row Component
-function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleShowInPos, onToggleAvailable, onConfigureVariants, onConfigureModifiers }) {
+function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleShowInPos, onConfigureVariants, onConfigureModifiers }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: product.id
   });
@@ -505,7 +505,6 @@ function ProductsPage() {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onToggleShowInPos={handleToggleShowInPos}
-                    onToggleAvailable={handleToggleAvailable}
                     onConfigureVariants={handleConfigureVariants}
                     onConfigureModifiers={handleConfigureModifiers}
                   />

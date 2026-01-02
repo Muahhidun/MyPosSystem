@@ -31,6 +31,18 @@ def main():
     try:
         print("📝 Начало миграции категорий товаров и техкарт в POS...")
 
+        # Шаг 0: Добавить значение 'pos' в ENUM categorytype
+        print("🔧 Добавляем значение 'pos' в ENUM categorytype...")
+        with engine.connect() as conn:
+            try:
+                conn.execute(text("ALTER TYPE categorytype ADD VALUE IF NOT EXISTS 'pos'"))
+                conn.commit()
+                print("✅ Значение 'pos' добавлено в ENUM")
+            except Exception as e:
+                # Возможно значение уже есть
+                print(f"⚠️  Не удалось добавить 'pos' в ENUM (возможно уже существует): {e}")
+                conn.rollback()
+
         # Шаг 1: Получить все категории типа 'product' и 'recipe'
         product_categories = db.query(Category).filter(Category.type == 'product').all()
         recipe_categories = db.query(Category).filter(Category.type == 'recipe').all()

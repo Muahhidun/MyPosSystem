@@ -304,7 +304,11 @@ def merge_pos_categories():
 
             db.commit()
             messages.append(f"✅ Объединено категорий: {len(merged_categories)}")
-            messages.append(f"📊 Итого категорий POS: {db.query(Category).filter(Category.type == 'pos').count()}")
+
+            # Используем прямой SQL для подсчета (избегаем проблем с Enum)
+            result = db.execute(text("SELECT COUNT(*) FROM categories WHERE type = 'pos'"))
+            pos_count = result.scalar()
+            messages.append(f"📊 Итого категорий POS: {pos_count}")
 
             return {
                 "status": "success",

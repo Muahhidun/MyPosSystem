@@ -842,6 +842,89 @@ def import_wedrink_menu():
         db.close()
 
 
+@app.post("/api/admin/fix-product-categories")
+def fix_product_categories():
+    """
+    Исправить category_id для товаров, созданных при импорте WeДrink
+
+    Логика:
+    1. Для товаров с вариантами: берём category_id из рецепта первого варианта
+    2. Для товаров без вариантов: ищем рецепт с таким же именем
+    """
+    from sqlalchemy.orm import sessionmaker
+    from app.models import Product, ProductVariant, Recipe
+
+    Session = sessionmaker(bind=engine)
+    db = Session()
+
+    stats = {
+        "products_updated": 0,
+        "products_skipped": 0,
+        "errors": []
+    }
+
+    try:
+        # Получить все товары без категории
+        products_without_category = db.query(Product).filter(
+            Product.category_id.is_(None)
+        ).all()
+
+        print(f"📊 Найдено товаров без категории: {len(products_without_category)}")
+
+        for product in products_without_category:
+            try:
+                category_id = None
+
+                # Проверить наличие вариантов
+                variants = db.query(ProductVariant).filter(
+                    ProductVariant.base_product_id == product.id
+                ).all()
+
+                if variants:
+                    # Есть варианты - берём category_id из рецепта первого варианта
+                    first_variant = variants[0]
+                    recipe = db.query(Recipe).filter(Recipe.id == first_variant.recipe_id).first()
+                    if recipe and recipe.category_id:
+                        category_id = recipe.category_id
+                        print(f"✅ {product.name}: category_id={category_id} (из варианта)")
+                else:
+                    # Нет вариантов - ищем рецепт с таким же именем
+                    recipe = db.query(Recipe).filter(Recipe.name == product.name).first()
+                    if recipe and recipe.category_id:
+                        category_id = recipe.category_id
+                        print(f"✅ {product.name}: category_id={category_id} (из рецепта)")
+
+                if category_id:
+                    product.category_id = category_id
+                    stats["products_updated"] += 1
+                else:
+                    print(f"⚠️  {product.name}: не найдена категория")
+                    stats["products_skipped"] += 1
+
+            except Exception as e:
+                error_msg = f"Ошибка для товара {product.name}: {str(e)}"
+                print(f"❌ {error_msg}")
+                stats["errors"].append(error_msg)
+
+        db.commit()
+
+        return {
+            "status": "success",
+            "stats": stats,
+            "message": f"Обновлено {stats['products_updated']} товаров, пропущено {stats['products_skipped']}"
+        }
+
+    except Exception as e:
+        db.rollback()
+        return {
+            "status": "error",
+            "message": str(e),
+            "stats": stats
+        }
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

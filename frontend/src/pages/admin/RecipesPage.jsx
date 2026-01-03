@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useSortableData, SortableHeader } from '../../components/SortableTable';
 
 // Sortable Recipe Row Component
 function SortableRecipeRow({ recipe, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleShowInPos }) {
@@ -489,7 +490,7 @@ function RecipesPage() {
   };
 
   // Фильтрация
-  const filteredRecipes = recipes.filter(recipe => {
+  const filtered = recipes.filter(recipe => {
     if (searchQuery && !recipe.name.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
@@ -503,6 +504,9 @@ function RecipesPage() {
     }
     return true;
   });
+
+  // Применение сортировки
+  const { sortedData: filteredRecipes, sortState, handleSort } = useSortableData(filtered);
 
   if (loading) {
     return (
@@ -812,14 +816,14 @@ function RecipesPage() {
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
               <th className="px-6 py-3 w-12"></th>
-              <th className="px-6 py-3 w-16">ID</th>
-              <th className="px-6 py-3">Название</th>
-              <th className="px-6 py-3">Категория</th>
-              <th className="px-6 py-3 text-right">Выход</th>
-              <th className="px-6 py-3 text-right">Себестоимость</th>
-              <th className="px-6 py-3 text-right">Цена</th>
-              <th className="px-6 py-3 text-right">Наценка</th>
-              <th className="px-6 py-3">На кассе</th>
+              <SortableHeader column="id" label="ID" sortState={sortState} onSort={handleSort} className="px-6 py-3 w-16" />
+              <SortableHeader column="name" label="Название" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
+              <SortableHeader column="category_name" label="Категория" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
+              <SortableHeader column="output_weight" label="Выход" sortState={sortState} onSort={handleSort} className="px-6 py-3 text-right" />
+              <SortableHeader column="cost" label="Себестоимость" sortState={sortState} onSort={handleSort} className="px-6 py-3 text-right" />
+              <SortableHeader column="price" label="Цена" sortState={sortState} onSort={handleSort} className="px-6 py-3 text-right" />
+              <SortableHeader column="markup_percentage" label="Наценка" sortState={sortState} onSort={handleSort} className="px-6 py-3 text-right" />
+              <SortableHeader column="show_in_pos" label="На кассе" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
               <th className="px-6 py-3 w-16"></th>
             </tr>
           </thead>

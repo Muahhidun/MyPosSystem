@@ -107,7 +107,7 @@ def get_pos_categories(db: Session = Depends(get_db)):
         {
             "id": cat.id,
             "name": cat.name,
-            "type": cat.type.value,
+            "type": cat.type,  # type is String, not Enum, so no .value needed
             "color": cat.color,
             "display_order": cat.display_order
         }

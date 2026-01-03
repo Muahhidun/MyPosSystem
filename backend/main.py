@@ -1009,13 +1009,15 @@ def fix_product_categories():
         db.close()
 
 
-@app.post("/api/admin/delete-products-without-variants")
-def delete_products_without_variants():
+@app.post("/api/admin/hide-products-without-variants")
+def hide_products_without_variants():
     """
-    Удалить все товары (Products) которые не имеют вариантов (ProductVariants)
+    Скрыть с кассы все товары (Products) которые не имеют вариантов (ProductVariants)
 
     Цель: убрать дубли на кассе. Товары должны существовать только если у них есть варианты размеров.
     Техкарты без вариантов должны показываться напрямую на кассе.
+
+    Не удаляем товары из БД (могут быть в заказах), а просто скрываем с кассы (show_in_pos = False).
     """
     from sqlalchemy.orm import sessionmaker
     from app.models import Product, ProductVariant
@@ -1026,7 +1028,8 @@ def delete_products_without_variants():
     stats = {
         "total_products": 0,
         "products_without_variants": 0,
-        "deleted": 0,
+        "hidden": 0,
+        "already_hidden": 0,
         "errors": []
     }
 
@@ -1035,7 +1038,7 @@ def delete_products_without_variants():
         all_products = db.query(Product).all()
         stats["total_products"] = len(all_products)
 
-        products_to_delete = []
+        products_to_hide = []
 
         for product in all_products:
             # Проверить есть ли у товара варианты
@@ -1044,19 +1047,23 @@ def delete_products_without_variants():
             ).count()
 
             if variants_count == 0:
-                products_to_delete.append(product)
+                products_to_hide.append(product)
                 stats["products_without_variants"] += 1
 
-        print(f"📊 Найдено товаров без вариантов: {len(products_to_delete)}")
+        print(f"📊 Найдено товаров без вариантов: {len(products_to_hide)}")
 
-        # Удаляем товары без вариантов
-        for product in products_to_delete:
+        # Скрываем товары без вариантов с кассы
+        for product in products_to_hide:
             try:
-                print(f"🗑️  Удаляем товар: {product.name} (id={product.id})")
-                db.delete(product)
-                stats["deleted"] += 1
+                if product.show_in_pos:
+                    print(f"🙈 Скрываем товар с кассы: {product.name} (id={product.id})")
+                    product.show_in_pos = False
+                    stats["hidden"] += 1
+                else:
+                    print(f"✓  Товар уже скрыт: {product.name} (id={product.id})")
+                    stats["already_hidden"] += 1
             except Exception as e:
-                error_msg = f"Ошибка при удалении товара {product.name}: {str(e)}"
+                error_msg = f"Ошибка при скрытии товара {product.name}: {str(e)}"
                 print(f"❌ {error_msg}")
                 stats["errors"].append(error_msg)
 
@@ -1065,7 +1072,7 @@ def delete_products_without_variants():
         return {
             "status": "success",
             "stats": stats,
-            "message": f"Удалено {stats['deleted']} товаров без вариантов из {stats['total_products']} всего"
+            "message": f"Скрыто с кассы {stats['hidden']} товаров без вариантов из {stats['total_products']} всего"
         }
 
     except Exception as e:

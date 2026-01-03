@@ -7,7 +7,8 @@ class ProductBase(BaseModel):
     """Базовая схема товара"""
     name: str = Field(..., min_length=1, max_length=200)
     price: float = Field(..., gt=0)
-    category: Optional[str] = None
+    category: Optional[str] = None  # DEPRECATED
+    category_id: Optional[int] = None  # НОВОЕ
     is_available: bool = True
     show_in_pos: bool = True  # Показывать на кассе
     image_url: Optional[str] = None

@@ -877,11 +877,14 @@ def fix_product_categories():
         for product in products_without_category:
             try:
                 category_id = None
+                debug_info = {"name": product.name, "id": product.id, "current_category_id": product.category_id}
 
                 # Проверить наличие вариантов
                 variants = db.query(ProductVariant).filter(
                     ProductVariant.base_product_id == product.id
                 ).all()
+
+                debug_info["variants_count"] = len(variants)
 
                 if variants:
                     # Есть варианты - берём category_id из рецепта первого варианта
@@ -889,13 +892,24 @@ def fix_product_categories():
                     recipe = db.query(Recipe).filter(Recipe.id == first_variant.recipe_id).first()
                     if recipe and recipe.category_id:
                         category_id = recipe.category_id
-                        print(f"✅ {product.name}: category_id={category_id} (из варианта)")
+                        debug_info["source"] = "variant"
+                        debug_info["recipe_id"] = recipe.id
+                        print(f"✅ {product.name}: category_id={category_id} (из варианта {recipe.name})")
                 else:
                     # Нет вариантов - ищем рецепт с таким же именем
                     recipe = db.query(Recipe).filter(Recipe.name == product.name).first()
-                    if recipe and recipe.category_id:
-                        category_id = recipe.category_id
-                        print(f"✅ {product.name}: category_id={category_id} (из рецепта)")
+                    if recipe:
+                        debug_info["recipe_found"] = True
+                        debug_info["recipe_category_id"] = recipe.category_id
+                        if recipe.category_id:
+                            category_id = recipe.category_id
+                            debug_info["source"] = "recipe"
+                            print(f"✅ {product.name}: category_id={category_id} (из рецепта)")
+                        else:
+                            print(f"⚠️  {product.name}: рецепт найден, но category_id=None")
+                    else:
+                        debug_info["recipe_found"] = False
+                        print(f"⚠️  {product.name}: рецепт не найден")
 
                 if category_id:
                     product.category_id = category_id

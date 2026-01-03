@@ -842,6 +842,73 @@ def import_wedrink_menu():
         db.close()
 
 
+@app.post("/api/admin/fix-all-product-categories")
+def fix_all_product_categories():
+    """
+    Обновить category_id для ВСЕХ товаров (упрощённая версия)
+    """
+    from sqlalchemy.orm import sessionmaker
+    from app.models import Product, ProductVariant, Recipe
+
+    Session = sessionmaker(bind=engine)
+    db = Session()
+
+    stats = {
+        "total_products": 0,
+        "updated_from_variant": 0,
+        "updated_from_recipe": 0,
+        "skipped_no_recipe": 0,
+        "skipped_has_category": 0
+    }
+
+    try:
+        all_products = db.query(Product).all()
+        stats["total_products"] = len(all_products)
+
+        for product in all_products:
+            # Пропустить если уже есть категория
+            if product.category_id:
+                stats["skipped_has_category"] += 1
+                continue
+
+            # Попробовать из варианта
+            variant = db.query(ProductVariant).filter(
+                ProductVariant.base_product_id == product.id
+            ).first()
+
+            if variant:
+                recipe = db.query(Recipe).filter(Recipe.id == variant.recipe_id).first()
+                if recipe and recipe.category_id:
+                    product.category_id = recipe.category_id
+                    stats["updated_from_variant"] += 1
+                    continue
+
+            # Попробовать из рецепта с таким же именем
+            recipe = db.query(Recipe).filter(Recipe.name == product.name).first()
+            if recipe and recipe.category_id:
+                product.category_id = recipe.category_id
+                stats["updated_from_recipe"] += 1
+            else:
+                stats["skipped_no_recipe"] += 1
+
+        db.commit()
+
+        return {
+            "status": "success",
+            "stats": stats
+        }
+
+    except Exception as e:
+        db.rollback()
+        return {
+            "status": "error",
+            "message": str(e),
+            "stats": stats
+        }
+    finally:
+        db.close()
+
+
 @app.post("/api/admin/fix-product-categories")
 def fix_product_categories():
     """

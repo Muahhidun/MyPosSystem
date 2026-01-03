@@ -542,6 +542,83 @@ def migrate_multi_location():
         }
 
 
+@app.post("/api/admin/fix-categorytype-enum")
+def fix_categorytype_enum():
+    """
+    FIX: Добавить 'product' и 'recipe' в ENUM categorytype
+
+    Issue: invalid input value for enum categorytype: "product"
+    Error occurs in get_pos_categories when filtering by ['pos', 'product', 'recipe']
+    """
+    import os
+
+    try:
+        messages = []
+        database_url = os.getenv('DATABASE_URL', '')
+        is_postgres = 'postgresql' in database_url.lower()
+
+        if not is_postgres:
+            return {
+                "status": "skipped",
+                "message": "This fix is only needed for PostgreSQL (SQLite doesn't have strict ENUMs)"
+            }
+
+        with engine.connect() as conn:
+            # Check current enum values
+            messages.append("📋 Checking current categorytype enum values...")
+            result = conn.execute(text("""
+                SELECT unnest(enum_range(NULL::categorytype)) AS value
+            """))
+            current_values = [row[0] for row in result]
+            messages.append(f"Current values: {', '.join(current_values)}")
+
+            # Add 'product' if missing
+            if 'product' not in current_values:
+                messages.append("🔧 Adding 'product' to categorytype enum...")
+                try:
+                    conn.execute(text("ALTER TYPE categorytype ADD VALUE 'product'"))
+                    conn.commit()
+                    messages.append("✅ Added 'product'")
+                except Exception as e:
+                    messages.append(f"⚠️ Error adding 'product': {str(e)}")
+                    conn.rollback()
+            else:
+                messages.append("⏭️ 'product' already exists")
+
+            # Add 'recipe' if missing
+            if 'recipe' not in current_values:
+                messages.append("🔧 Adding 'recipe' to categorytype enum...")
+                try:
+                    conn.execute(text("ALTER TYPE categorytype ADD VALUE 'recipe'"))
+                    conn.commit()
+                    messages.append("✅ Added 'recipe'")
+                except Exception as e:
+                    messages.append(f"⚠️ Error adding 'recipe': {str(e)}")
+                    conn.rollback()
+            else:
+                messages.append("⏭️ 'recipe' already exists")
+
+            # Verify final state
+            messages.append("\n✅ Final categorytype enum values:")
+            result = conn.execute(text("""
+                SELECT unnest(enum_range(NULL::categorytype)) AS value
+            """))
+            final_values = [row[0] for row in result]
+            messages.append(f"Final values: {', '.join(final_values)}")
+
+        return {
+            "status": "success",
+            "messages": messages
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "messages": messages if 'messages' in locals() else []
+        }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

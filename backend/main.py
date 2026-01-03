@@ -619,6 +619,229 @@ def fix_categorytype_enum():
         }
 
 
+@app.post("/api/admin/import-wedrink-menu")
+def import_wedrink_menu():
+    """
+    Импорт меню WeДrink из файла wedrink_menu_data.py
+
+    Создаёт:
+    1. Категории (если не существуют)
+    2. Все рецепты с размерами в названиях (пустые, без ингредиентов)
+    3. Товары с вариантами для выбора размера на кассе
+    """
+    import re
+    from sqlalchemy.orm import sessionmaker
+    from app.models import Category, Recipe, Product, ProductVariant, CategoryType
+
+    # Импортируем данные меню
+    import sys
+    sys.path.append('/Users/Dom/MyPosSystem/backend')
+    from scripts.wedrink_menu_data import WEDRINK_MENU
+
+    Session = sessionmaker(bind=engine)
+    db = Session()
+
+    stats = {
+        "categories_created": 0,
+        "recipes_created": 0,
+        "products_created": 0,
+        "variants_created": 0,
+        "errors": []
+    }
+
+    try:
+        # Шаг 1: Создать категории
+        print("📁 Создание категорий...")
+        category_map = {}  # {название: category_id}
+
+        unique_categories = list(set(item["category"] for item in WEDRINK_MENU))
+
+        for cat_name in unique_categories:
+            existing = db.query(Category).filter(
+                Category.name == cat_name,
+                Category.type == CategoryType.POS
+            ).first()
+
+            if existing:
+                category_map[cat_name] = existing.id
+            else:
+                new_cat = Category(
+                    name=cat_name,
+                    type=CategoryType.POS,
+                    display_order=len(category_map)
+                )
+                db.add(new_cat)
+                db.flush()
+                category_map[cat_name] = new_cat.id
+                stats["categories_created"] += 1
+
+        db.commit()
+        print(f"✅ Категории: создано {stats['categories_created']}, всего {len(category_map)}")
+
+        # Шаг 2: Создать все рецепты
+        print("📝 Создание рецептов...")
+        recipe_map = {}  # {название: recipe_id}
+
+        for item in WEDRINK_MENU:
+            # Проверить существование
+            existing = db.query(Recipe).filter(Recipe.name == item["name"]).first()
+            if existing:
+                recipe_map[item["name"]] = existing.id
+                continue
+
+            new_recipe = Recipe(
+                name=item["name"],
+                price=item["price"],
+                category_id=category_map[item["category"]],
+                output_weight=500.0,  # Дефолтное значение
+                show_in_pos=True
+            )
+            db.add(new_recipe)
+            db.flush()
+            recipe_map[item["name"]] = new_recipe.id
+            stats["recipes_created"] += 1
+
+        db.commit()
+        print(f"✅ Рецепты: создано {stats['recipes_created']}")
+
+        # Шаг 3: Группировка рецептов по базовому названию для создания товаров с вариантами
+        print("🔄 Группировка рецептов по размерам...")
+
+        # Паттерн для определения размеров: "название 0.5", "название 0.7", "название (Классический)" и т.д.
+        size_pattern = r'(.*?)\s+(0\.\d+|горячий|холодный)$'
+
+        # Группы: {base_name: [(full_name, price, size), ...]}
+        recipe_groups = {}
+        standalone_recipes = []  # Рецепты без размеров
+
+        for item in WEDRINK_MENU:
+            name = item["name"]
+            price = item["price"]
+
+            # Попробовать извлечь размер
+            match = re.match(size_pattern, name)
+
+            if match:
+                base_name = match.group(1).strip()
+                size = match.group(2)
+
+                if base_name not in recipe_groups:
+                    recipe_groups[base_name] = []
+
+                recipe_groups[base_name].append({
+                    "full_name": name,
+                    "price": price,
+                    "size": size
+                })
+            else:
+                # Рецепт без размера - создаём товар 1:1
+                standalone_recipes.append(item)
+
+        print(f"📊 Найдено групп с размерами: {len(recipe_groups)}")
+        print(f"📊 Рецептов без размеров: {len(standalone_recipes)}")
+
+        # Шаг 4: Создать товары с вариантами
+        print("🛍️ Создание товаров и вариантов...")
+
+        # 4.1 Товары с вариантами (несколько размеров)
+        for base_name, variants_data in recipe_groups.items():
+            # Проверить существование товара
+            existing_product = db.query(Product).filter(Product.name == base_name).first()
+            if existing_product:
+                print(f"⏭️  Товар '{base_name}' уже существует, пропускаем")
+                continue
+
+            # Определить категорию (берём из первого варианта)
+            first_variant = variants_data[0]
+            first_recipe_name = first_variant["full_name"]
+            first_recipe = db.query(Recipe).filter(Recipe.name == first_recipe_name).first()
+
+            if not first_recipe:
+                stats["errors"].append(f"Не найден рецепт для {first_recipe_name}")
+                continue
+
+            # Определить базовую цену (минимальная среди вариантов)
+            base_price = min(v["price"] for v in variants_data)
+
+            # Создать товар
+            new_product = Product(
+                name=base_name,
+                price=base_price,
+                category_id=first_recipe.category_id,
+                show_in_pos=True,
+                is_available=True
+            )
+            db.add(new_product)
+            db.flush()
+            stats["products_created"] += 1
+
+            # Создать варианты
+            for idx, variant_data in enumerate(sorted(variants_data, key=lambda x: x["price"])):
+                recipe = db.query(Recipe).filter(Recipe.name == variant_data["full_name"]).first()
+
+                if not recipe:
+                    stats["errors"].append(f"Рецепт не найден: {variant_data['full_name']}")
+                    continue
+
+                # Форматировать название размера
+                size_display = variant_data["size"]
+                if size_display.startswith("0."):
+                    size_display = f"{size_display}L"
+
+                variant = ProductVariant(
+                    base_product_id=new_product.id,
+                    recipe_id=recipe.id,
+                    name=size_display,
+                    price_adjustment=variant_data["price"] - base_price,
+                    display_order=idx,
+                    is_default=(idx == 0)  # Первый вариант = дефолтный
+                )
+                db.add(variant)
+                stats["variants_created"] += 1
+
+        # 4.2 Товары без вариантов (1:1 с рецептом)
+        for item in standalone_recipes:
+            existing_product = db.query(Product).filter(Product.name == item["name"]).first()
+            if existing_product:
+                continue
+
+            recipe = db.query(Recipe).filter(Recipe.name == item["name"]).first()
+            if not recipe:
+                stats["errors"].append(f"Рецепт не найден: {item['name']}")
+                continue
+
+            new_product = Product(
+                name=item["name"],
+                price=item["price"],
+                category_id=recipe.category_id,
+                show_in_pos=True,
+                is_available=True
+            )
+            db.add(new_product)
+            stats["products_created"] += 1
+
+        db.commit()
+
+        print(f"✅ Товары: создано {stats['products_created']}")
+        print(f"✅ Варианты: создано {stats['variants_created']}")
+
+        return {
+            "status": "success",
+            "stats": stats,
+            "message": f"Импорт завершён: {stats['recipes_created']} рецептов, {stats['products_created']} товаров, {stats['variants_created']} вариантов"
+        }
+
+    except Exception as e:
+        db.rollback()
+        return {
+            "status": "error",
+            "message": str(e),
+            "stats": stats
+        }
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

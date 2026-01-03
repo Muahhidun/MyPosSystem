@@ -866,9 +866,11 @@ def fix_product_categories():
     try:
         # Получить все товары без категории
         products_without_category = db.query(Product).filter(
-            Product.category_id.is_(None)
+            Product.category_id.is_(None),
+            Product.show_in_pos == True
         ).all()
 
+        stats["total_found"] = len(products_without_category)
         print(f"📊 Найдено товаров без категории: {len(products_without_category)}")
 
         for product in products_without_category:

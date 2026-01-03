@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import {
   ShoppingCart, Minus, Plus, X, Banknote, CreditCard,
-  Package, Trash2, Settings
+  Package, Trash2, Settings, Wifi, WifiOff, Clock, RefreshCw
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import api from '../api/client';
 import ReceiptPrinter from '../utils/receiptPrinter';
 import LabelPrinter from '../utils/labelPrinter';
 import POSModifiersModal from '../components/POSModifiersModal';
+import { useOfflineQueue } from '../hooks/useOfflineQueue';
 
 function POSPage() {
   const [products, setProducts] = useState([]);
@@ -17,6 +18,9 @@ function POSPage() {
   const [categories, setCategories] = useState([]);
   const [settings, setSettings] = useState(null);
   const [modifiersModalProduct, setModifiersModalProduct] = useState(null);
+
+  // Offline queue management
+  const { isOnline, pendingCount, createOrder: createOrderOffline, syncPendingOrders, isSyncing } = useOfflineQueue();
 
   useEffect(() => {
     loadProducts();
@@ -159,37 +163,14 @@ function POSPage() {
         payment_method: paymentMethod
       };
 
-      const order = await api.createOrder(orderData);
+      // Use offline queue instead of direct API call
+      // This will save to IndexedDB if offline, or send to server if online
+      await createOrderOffline(orderData);
 
-      // Автоматическая печать чека и бегунка
-      if (settings) {
-        // Печать чека для клиента
-        if (settings.receipt_printer_ip) {
-          try {
-            const receiptPrinter = new ReceiptPrinter(settings.receipt_printer_ip);
-            await receiptPrinter.printReceipt(order, {
-              businessName: settings.business_name,
-              phone: settings.phone
-            });
-            console.log('Чек отправлен на печать');
-          } catch (error) {
-            console.error('Ошибка печати чека:', error);
-          }
-        }
+      // Note: Printing is now handled separately since we might not get order object back immediately
+      // TODO: Implement printing after successful sync (listen to sync events from Service Worker)
 
-        // Печать бегунка для кухни
-        if (settings.label_printer_ip) {
-          try {
-            const labelPrinter = new LabelPrinter(settings.label_printer_ip);
-            await labelPrinter.printKitchenLabel(order);
-            console.log('Бегунок отправлен на печать');
-          } catch (error) {
-            console.error('Ошибка печати бегунка:', error);
-          }
-        }
-      }
-
-      toast.success(`Заказ #${order.order_number} создан! Сумма: ${order.total_amount}₸`);
+      // Clear cart after order is queued/created
       setCart([]);
     } catch (error) {
       console.error('Ошибка создания заказа:', error);
@@ -228,6 +209,40 @@ function POSPage() {
             <ShoppingCart size={20} className="text-white" />
           </div>
           <h1 className="text-base font-bold text-gray-900">Касса</h1>
+
+          {/* Offline/Online Indicator */}
+          <div className="flex items-center gap-1.5 ml-3">
+            {isOnline ? (
+              <div className="flex items-center gap-1 px-2 py-1 bg-green-50 border border-green-200 rounded-md">
+                <Wifi size={14} className="text-green-600" />
+                <span className="text-xs font-medium text-green-700">Онлайн</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-50 border border-red-200 rounded-md animate-pulse">
+                <WifiOff size={14} className="text-red-600" />
+                <span className="text-xs font-medium text-red-700">Офлайн</span>
+              </div>
+            )}
+
+            {/* Pending Orders Count */}
+            {pendingCount > 0 && (
+              <button
+                onClick={syncPendingOrders}
+                disabled={!isOnline || isSyncing}
+                className="flex items-center gap-1 px-2 py-1 bg-yellow-50 border border-yellow-200 rounded-md hover:bg-yellow-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                title={isOnline ? "Синхронизировать заказы" : "Ожидание подключения"}
+              >
+                {isSyncing ? (
+                  <RefreshCw size={14} className="text-yellow-600 animate-spin" />
+                ) : (
+                  <Clock size={14} className="text-yellow-600" />
+                )}
+                <span className="text-xs font-medium text-yellow-700">
+                  {pendingCount} в очереди
+                </span>
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-4">
           {cart.length > 0 && (

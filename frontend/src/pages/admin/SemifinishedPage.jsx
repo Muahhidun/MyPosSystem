@@ -6,6 +6,7 @@ import { Select } from '../../components/ui/Select';
 import { Button } from '../../components/ui/Button';
 import { Search, Plus, X, MoreHorizontal, FlaskConical, Edit2, Trash2, ArrowLeft } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import { useSortableData, SortableHeader } from '../../components/SortableTable';
 
 // Компонент вынесен наружу чтобы не пересоздаваться при каждом рендере
 function IngredientRow({ index, ingredient, ingredients, updateIngredient, removeIngredient }) {
@@ -302,11 +303,21 @@ function SemifinishedPage() {
     return (total / output) * 1000;
   };
 
-  const filteredSemifinished = semifinished.filter(item => {
+  // Добавляем вычисляемое поле для сортировки
+  const semifinishedWithCost = semifinished.map(item => ({
+    ...item,
+    cost_per_kg: item.output_quantity > 0 ? (item.cost / item.output_quantity) * 1000 : 0
+  }));
+
+  // Фильтрация
+  const filtered = semifinishedWithCost.filter(item => {
     const matchesCategory = !filterCategory || item.category === filterCategory;
     const matchesSearch = !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  // Применение сортировки
+  const { sortedData: filteredSemifinished, sortState, handleSort } = useSortableData(filtered);
 
   if (loading) {
     return (
@@ -372,19 +383,17 @@ function SemifinishedPage() {
               <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
-                  <th className="px-6 py-3 w-16">ID</th>
-                  <th className="px-6 py-3">Название</th>
-                  <th className="px-6 py-3">Категория</th>
-                  <th className="px-6 py-3 text-right">Выход</th>
-                  <th className="px-6 py-3 text-right">Себестоимость</th>
-                  <th className="px-6 py-3 text-right">Цена/кг</th>
+                  <SortableHeader column="id" label="ID" sortState={sortState} onSort={handleSort} className="px-6 py-3 w-16" />
+                  <SortableHeader column="name" label="Название" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
+                  <SortableHeader column="category" label="Категория" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
+                  <SortableHeader column="output_quantity" label="Выход" sortState={sortState} onSort={handleSort} className="px-6 py-3 text-right" />
+                  <SortableHeader column="cost" label="Себестоимость" sortState={sortState} onSort={handleSort} className="px-6 py-3 text-right" />
+                  <SortableHeader column="cost_per_kg" label="Цена/кг" sortState={sortState} onSort={handleSort} className="px-6 py-3 text-right" />
                   <th className="px-6 py-3 w-16"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredSemifinished.map((item) => {
-                  const costPerUnit = item.output_quantity > 0 ? (item.cost / item.output_quantity) * 1000 : 0;
-                  return (
+                {filteredSemifinished.map((item) => (
                     <tr key={item.id} className="hover:bg-gray-50 transition-colors group">
                       <td className="px-6 py-3 text-gray-400 text-sm">#{item.id}</td>
                       <td className="px-6 py-3">
@@ -406,7 +415,7 @@ function SemifinishedPage() {
                         {item.cost?.toFixed(2) || '0.00'} ₸
                       </td>
                       <td className="px-6 py-3 text-right text-sm text-green-600 font-medium">
-                        {costPerUnit.toFixed(2)} ₸
+                        {item.cost_per_kg.toFixed(2)} ₸
                       </td>
                       <td className="px-6 py-3 text-right relative">
                         <button
@@ -435,8 +444,7 @@ function SemifinishedPage() {
                         )}
                       </td>
                     </tr>
-                  );
-                })}
+                ))}
               </tbody>
             </table>
             </div>

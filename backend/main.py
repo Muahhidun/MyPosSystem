@@ -1086,6 +1086,39 @@ def hide_products_without_variants():
         db.close()
 
 
+@app.get("/api/admin/check-variants")
+def check_variants():
+    """Проверить сколько вариантов существует в БД и к каким товарам они привязаны"""
+    from sqlalchemy.orm import sessionmaker
+    from app.models import Product, ProductVariant
+
+    Session = sessionmaker(bind=engine)
+    db = Session()
+
+    try:
+        all_variants = db.query(ProductVariant).all()
+
+        variants_data = []
+        for variant in all_variants:
+            product = db.query(Product).filter(Product.id == variant.base_product_id).first()
+            variants_data.append({
+                "variant_id": variant.id,
+                "variant_name": variant.name,
+                "product_id": variant.base_product_id,
+                "product_name": product.name if product else "NOT FOUND",
+                "recipe_id": variant.recipe_id,
+                "price_adjustment": variant.price_adjustment,
+                "is_default": variant.is_default
+            })
+
+        return {
+            "total_variants": len(all_variants),
+            "variants": variants_data
+        }
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

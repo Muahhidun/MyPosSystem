@@ -11,6 +11,7 @@ import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } 
 import { CSS } from '@dnd-kit/utilities';
 import VariantsModal from '../../components/VariantsModal';
 import ProductModifiersModal from '../../components/ProductModifiersModal';
+import { useSortableData, SortableHeader } from '../../components/SortableTable';
 
 // Sortable Product Row Component
 function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuToggle, onEdit, onDelete, onToggleShowInPos, onConfigureVariants, onConfigureModifiers }) {
@@ -170,7 +171,7 @@ function ProductsPage() {
     }
   };
 
-  const filteredProducts = products.filter(product => {
+  const filtered = products.filter(product => {
     if (searchQuery && !product.name.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
@@ -184,6 +185,9 @@ function ProductsPage() {
     }
     return true;
   });
+
+  // Применение сортировки
+  const { sortedData: filteredProducts, sortState, handleSort } = useSortableData(filtered);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -484,11 +488,11 @@ function ProductsPage() {
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
               <th className="px-6 py-3 w-12"></th>
-              <th className="px-6 py-3 w-16">ID</th>
-              <th className="px-6 py-3">Название</th>
-              <th className="px-6 py-3">Категория</th>
-              <th className="px-6 py-3 text-right">Цена</th>
-              <th className="px-6 py-3">На кассе</th>
+              <SortableHeader column="id" label="ID" sortState={sortState} onSort={handleSort} className="px-6 py-3 w-16" />
+              <SortableHeader column="name" label="Название" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
+              <SortableHeader column="category_name" label="Категория" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
+              <SortableHeader column="price" label="Цена" sortState={sortState} onSort={handleSort} className="px-6 py-3 text-right" />
+              <SortableHeader column="show_in_pos" label="На кассе" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
               <th className="px-6 py-3 w-16"></th>
             </tr>
           </thead>

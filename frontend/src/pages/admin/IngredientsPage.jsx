@@ -6,6 +6,7 @@ import AdminLayout from '../../components/AdminLayout';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Button } from '../../components/ui/Button';
+import { useSortableData, SortableHeader } from '../../components/SortableTable';
 
 const UNITS = [
   { value: 'кг', label: 'кг (килограмм)' },
@@ -55,7 +56,7 @@ function IngredientsPage() {
     }
   };
 
-  const filteredIngredients = ingredients.filter(ingredient => {
+  const filtered = ingredients.filter(ingredient => {
     if (searchQuery && !ingredient.name.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
@@ -67,6 +68,9 @@ function IngredientsPage() {
     }
     return true;
   });
+
+  // Применение сортировки
+  const { sortedData: filteredIngredients, sortState, handleSort } = useSortableData(filtered);
 
   const loadCategories = async () => {
     try {
@@ -344,12 +348,12 @@ function IngredientsPage() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
-              <th className="px-6 py-3 w-16">ID</th>
-              <th className="px-6 py-3">Название</th>
-              <th className="px-6 py-3">Категория</th>
-              <th className="px-6 py-3">Единица</th>
-              <th className="px-6 py-3 text-right">Цена закупки</th>
-              <th className="px-6 py-3">Упаковка</th>
+              <SortableHeader column="id" label="ID" sortState={sortState} onSort={handleSort} className="px-6 py-3 w-16" />
+              <SortableHeader column="name" label="Название" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
+              <SortableHeader column="category_name" label="Категория" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
+              <SortableHeader column="unit" label="Единица" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
+              <SortableHeader column="purchase_price" label="Цена закупки" sortState={sortState} onSort={handleSort} className="px-6 py-3 text-right" />
+              <SortableHeader column="package_size" label="Упаковка" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
               <th className="px-6 py-3 w-16"></th>
             </tr>
           </thead>

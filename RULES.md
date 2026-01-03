@@ -60,6 +60,7 @@ Internal POS system for bubble tea shop with **offline-first** architecture.
 - ❌ **NO bypassing offline queue** - ALL orders go through IndexedDB
 - ❌ **NO inline styles** - Use Tailwind classes
 - ❌ **NO localStorage for critical data** - Use IndexedDB
+- ❌ **NO tables without sortable columns** - Use SortableTable component
 
 ### General
 - ❌ **NO committing .env files** or secrets
@@ -121,6 +122,29 @@ await manager.broadcast({"type": "new_order", "order": {...}})
 
 // Frontend: Use custom hook
 const { orders, connected } = useKitchenSocket();
+```
+
+### Sortable Tables Pattern
+```typescript
+// ALWAYS use for ANY list/table in admin pages
+import { useSortableData, SortableHeader } from '../../components/SortableTable';
+
+// Apply sorting to filtered data
+const { sortedData, sortState, handleSort } = useSortableData(filteredData);
+
+// Use SortableHeader for table headers
+<SortableHeader
+  column="name"
+  label="Название"
+  sortState={sortState}
+  onSort={handleSort}
+  className="px-6 py-3"
+/>
+
+// Behavior:
+// 1st click: ascending (A-Z, 0-9) ↑
+// 2nd click: descending (Z-A, 9-0) ↓
+// 3rd click: reset to original order
 ```
 
 ---

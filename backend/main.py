@@ -1009,6 +1009,76 @@ def fix_product_categories():
         db.close()
 
 
+@app.post("/api/admin/delete-products-without-variants")
+def delete_products_without_variants():
+    """
+    Удалить все товары (Products) которые не имеют вариантов (ProductVariants)
+
+    Цель: убрать дубли на кассе. Товары должны существовать только если у них есть варианты размеров.
+    Техкарты без вариантов должны показываться напрямую на кассе.
+    """
+    from sqlalchemy.orm import sessionmaker
+    from app.models import Product, ProductVariant
+
+    Session = sessionmaker(bind=engine)
+    db = Session()
+
+    stats = {
+        "total_products": 0,
+        "products_without_variants": 0,
+        "deleted": 0,
+        "errors": []
+    }
+
+    try:
+        # Получить все товары
+        all_products = db.query(Product).all()
+        stats["total_products"] = len(all_products)
+
+        products_to_delete = []
+
+        for product in all_products:
+            # Проверить есть ли у товара варианты
+            variants_count = db.query(ProductVariant).filter(
+                ProductVariant.base_product_id == product.id
+            ).count()
+
+            if variants_count == 0:
+                products_to_delete.append(product)
+                stats["products_without_variants"] += 1
+
+        print(f"📊 Найдено товаров без вариантов: {len(products_to_delete)}")
+
+        # Удаляем товары без вариантов
+        for product in products_to_delete:
+            try:
+                print(f"🗑️  Удаляем товар: {product.name} (id={product.id})")
+                db.delete(product)
+                stats["deleted"] += 1
+            except Exception as e:
+                error_msg = f"Ошибка при удалении товара {product.name}: {str(e)}"
+                print(f"❌ {error_msg}")
+                stats["errors"].append(error_msg)
+
+        db.commit()
+
+        return {
+            "status": "success",
+            "stats": stats,
+            "message": f"Удалено {stats['deleted']} товаров без вариантов из {stats['total_products']} всего"
+        }
+
+    except Exception as e:
+        db.rollback()
+        return {
+            "status": "error",
+            "message": str(e),
+            "stats": stats
+        }
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

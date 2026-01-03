@@ -9,6 +9,7 @@ import ReceiptPrinter from '../utils/receiptPrinter';
 import LabelPrinter from '../utils/labelPrinter';
 import AdminLayout from '../components/AdminLayout';
 import { Button } from '../components/ui/Button';
+import { useSortableData, SortableHeader } from '../components/SortableTable';
 
 function DashboardPage() {
   const [orders, setOrders] = useState([]);
@@ -98,6 +99,10 @@ function DashboardPage() {
       setPrinting(prev => ({ ...prev, [printKey]: false }));
     }
   };
+
+  // Применение сортировки к последним 20 заказам
+  const recentOrders = orders.slice(0, 20);
+  const { sortedData: sortedOrders, sortState, handleSort } = useSortableData(recentOrders);
 
   if (loading) {
     return (
@@ -236,16 +241,16 @@ function DashboardPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
-                    <th className="px-6 py-3">Номер заказа</th>
-                    <th className="px-6 py-3">Время</th>
+                    <SortableHeader column="order_number" label="Номер заказа" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
+                    <SortableHeader column="created_at" label="Время" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
                     <th className="px-6 py-3">Товары</th>
-                    <th className="px-6 py-3 text-right">Сумма</th>
-                    <th className="px-6 py-3">Оплата</th>
+                    <SortableHeader column="total_amount" label="Сумма" sortState={sortState} onSort={handleSort} className="px-6 py-3 text-right" />
+                    <SortableHeader column="payment_method" label="Оплата" sortState={sortState} onSort={handleSort} className="px-6 py-3" />
                     <th className="px-6 py-3 text-center">Действия</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {orders.slice(0, 20).map((order) => (
+                  {sortedOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <span className="font-semibold text-gray-900">#{order.order_number}</span>

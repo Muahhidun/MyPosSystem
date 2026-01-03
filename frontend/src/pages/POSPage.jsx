@@ -296,7 +296,7 @@ function POSPage() {
           <div className="grid grid-cols-4 gap-2">
             {filteredProducts.map(product => (
               <button
-                key={product.id}
+                key={`${product.type}-${product.id}`}
                 onClick={() => addToCart(product)}
                 className="bg-white p-3 rounded-xl shadow-sm border-2 border-gray-200 hover:shadow-lg hover:border-blue-400 transition-all text-left active:scale-95 min-h-24"
               >

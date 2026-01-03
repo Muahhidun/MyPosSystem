@@ -182,6 +182,18 @@ function POSPage() {
     ? products
     : products.filter(p => p.category_id === selectedCategory);
 
+  // DEBUG: Логирование для отладки фильтрации
+  useEffect(() => {
+    console.log('🔍 POS Filter Debug:', {
+      selectedCategory,
+      selectedCategoryType: typeof selectedCategory,
+      totalProducts: products.length,
+      filteredCount: filteredProducts.length,
+      sampleProduct: products[0]?.category_id,
+      sampleProductType: typeof products[0]?.category_id
+    });
+  }, [selectedCategory, products]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50">

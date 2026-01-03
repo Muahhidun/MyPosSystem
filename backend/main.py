@@ -1086,6 +1086,51 @@ def hide_products_without_variants():
         db.close()
 
 
+@app.post("/api/admin/hide-all-products")
+def hide_all_products():
+    """
+    Скрыть ВСЕ товары с кассы (даже те, у которых есть варианты)
+
+    Причина: Варианты созданы неполными, это создаёт дубли с техкартами.
+    Лучше пока показывать только техкарты напрямую.
+    """
+    from sqlalchemy.orm import sessionmaker
+    from app.models import Product
+
+    Session = sessionmaker(bind=engine)
+    db = Session()
+
+    stats = {
+        "total_products": 0,
+        "hidden": 0,
+        "already_hidden": 0
+    }
+
+    try:
+        all_products = db.query(Product).all()
+        stats["total_products"] = len(all_products)
+
+        for product in all_products:
+            if product.show_in_pos:
+                product.show_in_pos = False
+                stats["hidden"] += 1
+            else:
+                stats["already_hidden"] += 1
+
+        db.commit()
+
+        return {
+            "status": "success",
+            "stats": stats,
+            "message": f"Скрыто {stats['hidden']} товаров. На кассе останутся только техкарты."
+        }
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e), "stats": stats}
+    finally:
+        db.close()
+
+
 @app.get("/api/admin/check-variants")
 def check_variants():
     """Проверить сколько вариантов существует в БД и к каким товарам они привязаны"""

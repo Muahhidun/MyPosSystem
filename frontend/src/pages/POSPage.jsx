@@ -5,10 +5,10 @@ import {
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import api from '../api/client';
-import ReceiptPrinter from '../utils/receiptPrinter';
-import LabelPrinter from '../utils/labelPrinter';
+import HybridPrinter from '../utils/hybridPrinter';
 import POSModifiersModal from '../components/POSModifiersModal';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
+import '../styles/print.css';
 
 function POSPage() {
   const [products, setProducts] = useState([]);
@@ -21,6 +21,9 @@ function POSPage() {
 
   // Offline queue management
   const { isOnline, pendingCount, createOrder: createOrderOffline, syncPendingOrders, isSyncing } = useOfflineQueue();
+
+  // Hybrid printer (Windows USB + Android RawBT)
+  const [printer] = useState(() => new HybridPrinter());
 
   useEffect(() => {
     loadProducts();
@@ -163,15 +166,45 @@ function POSPage() {
         payment_method: paymentMethod
       };
 
+      // Генерируем локальный номер заказа для печати
+      const timestamp = new Date().getTime();
+      const randomId = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const localOrderNumber = `ORD-${timestamp}-${randomId}`;
+
+      // Формируем объект заказа для печати
+      const orderForPrint = {
+        order_number: localOrderNumber,
+        created_at: new Date().toISOString(),
+        total_amount: getTotalAmount(),
+        payment_method: paymentMethod,
+        items: cart.map(item => ({
+          product_name: item.displayName || item.name,
+          quantity: item.quantity,
+          price: item.price,
+          subtotal: item.price * item.quantity
+        }))
+      };
+
       // Use offline queue instead of direct API call
       // This will save to IndexedDB if offline, or send to server if online
       await createOrderOffline(orderData);
 
-      // Note: Printing is now handled separately since we might not get order object back immediately
-      // TODO: Implement printing after successful sync (listen to sync events from Service Worker)
+      // Печать чека через гибридный принтер
+      toast.promise(
+        printer.printReceipt(orderForPrint, settings, 'receipt'),
+        {
+          loading: 'Печать чека...',
+          success: 'Чек отправлен на печать!',
+          error: 'Ошибка печати. Проверьте принтер'
+        }
+      );
+
+      // Печать бегунка (опционально - можно добавить настройку)
+      // await printer.printReceipt(orderForPrint, settings, 'label');
 
       // Clear cart after order is queued/created
       setCart([]);
+      toast.success('Заказ успешно создан!');
     } catch (error) {
       console.error('Ошибка создания заказа:', error);
       toast.error('Не удалось создать заказ');
@@ -458,6 +491,9 @@ function POSPage() {
           onConfirm={handleModifiersConfirm}
         />
       )}
+
+      {/* Hidden print container for browser printing */}
+      <div id="print-container" style={{ display: 'none' }}></div>
     </div>
   );
 }

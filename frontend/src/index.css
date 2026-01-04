@@ -23,3 +23,246 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ===========================
+   СТИЛИ ДЛЯ ПЕЧАТИ ЧЕКОВ
+   =========================== */
+
+@media print {
+  /* Скрыть всё, кроме контейнера печати */
+  body * {
+    visibility: hidden !important;
+  }
+
+  #print-container,
+  #print-container * {
+    visibility: visible !important;
+  }
+
+  #print-container {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Скрыть хедер, меню, корзину и т.д. */
+  header,
+  nav,
+  .cart,
+  .sidebar,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Убрать отступы и поля страницы */
+  @page {
+    margin: 0;
+    size: 80mm auto;
+  }
+
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* Стили для чека (80мм термопринтер) */
+.receipt {
+  font-family: 'Courier New', monospace;
+  width: 80mm;
+  margin: 0 auto;
+  padding: 10px;
+  font-size: 12pt;
+  line-height: 1.4;
+  color: #000;
+  background: #fff;
+}
+
+.receipt-header {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.receipt-header h1 {
+  font-size: 18pt;
+  font-weight: bold;
+  margin: 0 0 5px 0;
+  text-transform: uppercase;
+}
+
+.receipt-divider {
+  text-align: center;
+  font-size: 10pt;
+  margin: 8px 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.receipt-divider-thin {
+  text-align: center;
+  font-size: 10pt;
+  margin: 5px 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.receipt-order-number {
+  text-align: center;
+  font-size: 14pt;
+  font-weight: bold;
+  margin: 8px 0;
+}
+
+.receipt-datetime {
+  text-align: center;
+  font-size: 11pt;
+  margin: 5px 0;
+}
+
+.receipt-items {
+  margin: 10px 0;
+}
+
+.receipt-item {
+  margin-bottom: 8px;
+}
+
+.item-name {
+  font-size: 12pt;
+  font-weight: bold;
+  margin-bottom: 3px;
+}
+
+.item-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11pt;
+}
+
+.item-qty {
+  flex: 1;
+}
+
+.item-total {
+  font-weight: bold;
+  text-align: right;
+}
+
+.receipt-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14pt;
+  font-weight: bold;
+  margin: 10px 0;
+  padding: 5px 0;
+}
+
+.total-label {
+  flex: 1;
+}
+
+.total-amount {
+  text-align: right;
+  font-size: 16pt;
+}
+
+.receipt-payment {
+  text-align: center;
+  font-size: 12pt;
+  margin: 8px 0;
+}
+
+.receipt-footer {
+  text-align: center;
+  margin-top: 15px;
+}
+
+.receipt-thanks {
+  font-size: 14pt;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.receipt-phone {
+  font-size: 11pt;
+  margin-top: 5px;
+}
+
+/* Стили для бегунка/этикетки (58мм) */
+.label {
+  font-family: 'Courier New', monospace;
+  width: 58mm;
+  margin: 0 auto;
+  padding: 8px;
+  font-size: 11pt;
+  line-height: 1.3;
+  color: #000;
+  background: #fff;
+}
+
+.label-divider {
+  text-align: center;
+  font-size: 9pt;
+  margin: 6px 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.label-divider-thin {
+  text-align: center;
+  font-size: 9pt;
+  margin: 4px 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.label-order-number {
+  text-align: center;
+  font-size: 16pt;
+  font-weight: bold;
+  margin: 8px 0;
+}
+
+.label-items {
+  margin: 8px 0;
+}
+
+.label-item {
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.label-item-name {
+  font-size: 13pt;
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.label-item-qty {
+  font-size: 12pt;
+  font-weight: bold;
+}
+
+.label-time {
+  text-align: center;
+  font-size: 13pt;
+  font-weight: bold;
+  margin: 8px 0;
+}
+
+@media print {
+  .receipt,
+  .label {
+    page-break-after: always;
+  }
+
+  .receipt *,
+  .label * {
+    color: #000 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+}

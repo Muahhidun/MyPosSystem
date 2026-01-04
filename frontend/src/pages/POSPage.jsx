@@ -8,7 +8,6 @@ import api from '../api/client';
 import HybridPrinter from '../utils/hybridPrinter';
 import POSModifiersModal from '../components/POSModifiersModal';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
-import '../styles/print.css';
 
 function POSPage() {
   const [products, setProducts] = useState([]);

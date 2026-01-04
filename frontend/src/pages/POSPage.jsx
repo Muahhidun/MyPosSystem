@@ -408,7 +408,7 @@ function POSPage() {
           </div>
 
           {/* Cart footer - COMPACT */}
-          <div className="px-4 py-3 border-t-2 border-gray-200 bg-gray-50">
+          <div className="mt-auto px-4 py-3 border-t-2 border-gray-200 bg-gray-50">
             {/* Total - COMPACT */}
             <div className="bg-white rounded-xl p-3 mb-3 border-2 border-gray-200">
               <div className="flex justify-between items-center">

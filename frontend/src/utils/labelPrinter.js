@@ -24,9 +24,12 @@ class LabelPrinter extends ESCPOSPrinter {
     // Инициализация
     commands.push(ESCPOSPrinter.commands.INIT);
 
+    // Установка международного набора символов (Россия)
+    commands.push(ESCPOSPrinter.commands.INTL_CHARSET_RUSSIA);
+
     // Установка кодовой страницы для кириллицы
-    // CP1251 (Windows кириллица) - попробуем вместо CP866
-    commands.push(ESCPOSPrinter.commands.CHARSET_CP1251);
+    // CP866 с международным набором
+    commands.push(ESCPOSPrinter.commands.CHARSET_CP866);
 
     // Верхняя рамка
     commands.push(...this.printSeparator('=', 32));

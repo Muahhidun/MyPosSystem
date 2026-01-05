@@ -25,9 +25,12 @@ class ReceiptPrinter extends ESCPOSPrinter {
     // Инициализация
     commands.push(ESCPOSPrinter.commands.INIT);
 
+    // Установка международного набора символов (Россия)
+    commands.push(ESCPOSPrinter.commands.INTL_CHARSET_RUSSIA);
+
     // Установка кодовой страницы для кириллицы
-    // CP1251 (Windows кириллица) - попробуем вместо CP866
-    commands.push(ESCPOSPrinter.commands.CHARSET_CP1251);
+    // Попробуем CP866 с международным набором
+    commands.push(ESCPOSPrinter.commands.CHARSET_CP866);
 
     // Заголовок - название заведения
     if (settings.businessName) {

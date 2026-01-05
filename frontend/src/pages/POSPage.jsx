@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import api from '../api/client';
-import HybridPrinter from '../utils/hybridPrinter';
+import ReceiptPrinter from '../utils/receiptPrinter';
+import LabelPrinter from '../utils/labelPrinter';
 import POSModifiersModal from '../components/POSModifiersModal';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
 
@@ -20,9 +21,6 @@ function POSPage() {
 
   // Offline queue management
   const { isOnline, pendingCount, createOrder: createOrderOffline, syncPendingOrders, isSyncing } = useOfflineQueue();
-
-  // Hybrid printer (Windows USB + Android RawBT)
-  const [printer] = useState(() => new HybridPrinter());
 
   useEffect(() => {
     loadProducts();
@@ -188,18 +186,30 @@ function POSPage() {
       // This will save to IndexedDB if offline, or send to server if online
       await createOrderOffline(orderData);
 
-      // Печать чека через гибридный принтер
-      toast.promise(
-        printer.printReceipt(orderForPrint, settings, 'receipt'),
-        {
-          loading: 'Печать чека...',
-          success: 'Чек отправлен на печать!',
-          error: 'Ошибка печати. Проверьте принтер'
-        }
-      );
+      // Печать чека и этикетки через ESC/POS
+      if (settings?.receipt_printer_ip || settings?.label_printer_ip) {
+        try {
+          // Печать чека
+          if (settings.receipt_printer_ip) {
+            const receiptPrinter = new ReceiptPrinter(settings.receipt_printer_ip);
+            await receiptPrinter.printReceipt(orderForPrint, {
+              businessName: settings.business_name,
+              phone: settings.phone
+            });
+            toast.success('Чек отправлен на печать!');
+          }
 
-      // Печать бегунка (опционально - можно добавить настройку)
-      // await printer.printReceipt(orderForPrint, settings, 'label');
+          // Печать этикетки
+          if (settings.label_printer_ip) {
+            const labelPrinter = new LabelPrinter(settings.label_printer_ip);
+            await labelPrinter.printKitchenLabel(orderForPrint);
+            toast.success('Этикетка отправлена на печать!');
+          }
+        } catch (error) {
+          console.error('Ошибка печати:', error);
+          toast.error('Ошибка печати: ' + error.message);
+        }
+      }
 
       // Clear cart after order is queued/created
       setCart([]);
@@ -490,9 +500,6 @@ function POSPage() {
           onConfirm={handleModifiersConfirm}
         />
       )}
-
-      {/* Hidden print container for browser printing */}
-      <div id="print-container" style={{ display: 'none' }}></div>
     </div>
   );
 }

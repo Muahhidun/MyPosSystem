@@ -9,14 +9,25 @@ class ReceiptPrinter extends ESCPOSPrinter {
    * @param {Object} settings - Настройки (название заведения, адрес и т.д.)
    */
   async printReceipt(order, settings = {}) {
+    const commands = this.buildReceiptCommands(order, settings);
+    return await this.print(commands);
+  }
+
+  /**
+   * Формирование команд для печати чека (для RawBT и сетевой печати)
+   * @param {Object} order - Данные заказа
+   * @param {Object} settings - Настройки (название заведения, адрес и т.д.)
+   * @returns {Array} Массив ESC/POS команд
+   */
+  buildReceiptCommands(order, settings = {}) {
     const commands = [];
 
     // Инициализация
     commands.push(ESCPOSPrinter.commands.INIT);
 
     // Установка кодовой страницы для кириллицы
-    // Попробуем CP866 (DOS кириллица) - обычно поддерживается принтерами
-    commands.push(ESCPOSPrinter.commands.CHARSET_CP866);
+    // CP1251 (Windows кириллица) - попробуем вместо CP866
+    commands.push(ESCPOSPrinter.commands.CHARSET_CP1251);
 
     // Заголовок - название заведения
     if (settings.businessName) {
@@ -122,8 +133,7 @@ class ReceiptPrinter extends ESCPOSPrinter {
     // Обрезка бумаги
     commands.push(ESCPOSPrinter.commands.CUT_PAPER);
 
-    // Отправка на печать
-    return await this.print(commands);
+    return commands;
   }
 
   /**

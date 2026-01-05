@@ -9,10 +9,24 @@ class LabelPrinter extends ESCPOSPrinter {
    * @param {Object} order - Данные заказа
    */
   async printKitchenLabel(order) {
+    const commands = this.buildKitchenLabelCommands(order);
+    return await this.print(commands);
+  }
+
+  /**
+   * Формирование команд для печати бегунка (для RawBT и сетевой печати)
+   * @param {Object} order - Данные заказа
+   * @returns {Array} Массив ESC/POS команд
+   */
+  buildKitchenLabelCommands(order) {
     const commands = [];
 
     // Инициализация
     commands.push(ESCPOSPrinter.commands.INIT);
+
+    // Установка кодовой страницы для кириллицы
+    // CP1251 (Windows кириллица) - попробуем вместо CP866
+    commands.push(ESCPOSPrinter.commands.CHARSET_CP1251);
 
     // Верхняя рамка
     commands.push(...this.printSeparator('=', 32));
@@ -75,8 +89,7 @@ class LabelPrinter extends ESCPOSPrinter {
     // Обрезка этикетки
     commands.push(ESCPOSPrinter.commands.CUT_PAPER);
 
-    // Отправка на печать
-    return await this.print(commands);
+    return commands;
   }
 
   /**

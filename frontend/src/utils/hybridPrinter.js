@@ -57,13 +57,48 @@ class HybridPrinter {
       // Android: RawBT печать
       return await this.printViaRawBT(order, settings, type);
     } else {
-      // Windows/Desktop: Браузерная печать
-      return await this.printViaBrowser(order, settings, type);
+      // Windows/Desktop: ESC/POS через USB Printer Proxy Server
+      return await this.printViaNetwork(order, settings, type);
     }
   }
 
   /**
-   * Печать через браузер (window.print)
+   * Печать через сеть (USB Printer Proxy Server)
+   * Для Windows Desktop с USB принтерами через localhost
+   */
+  async printViaNetwork(order, settings, type) {
+    try {
+      // Импортируем ESC/POS принтеры
+      const { default: ReceiptPrinter } = await import('./receiptPrinter.js');
+      const { default: LabelPrinter } = await import('./labelPrinter.js');
+
+      // Определяем IP (localhost для USB Printer Proxy Server)
+      const printerIP = '127.0.0.1';
+
+      let printer;
+      let result;
+
+      if (type === 'label') {
+        // Печать бегунка на XP-365B (localhost:9101)
+        printer = new LabelPrinter(printerIP);
+        printer.port = 9101; // Переопределяем порт для бегунков
+        result = await printer.printKitchenLabel(order);
+      } else {
+        // Печать чека на XP-T80Q (localhost:9100)
+        printer = new ReceiptPrinter(printerIP);
+        printer.port = 9100; // Порт для чеков
+        result = await printer.printReceipt(order, settings);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('❌ Ошибка печати через сеть:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Печать через браузер (window.print) - НЕ ИСПОЛЬЗУЕТСЯ
    * Для Windows Desktop с USB принтерами
    */
   async printViaBrowser(order, settings, type) {

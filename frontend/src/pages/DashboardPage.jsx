@@ -108,7 +108,7 @@ function DashboardPage() {
     return (
       <AdminLayout title="Дашборд">
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: '#1f6b7a' }}></div>
         </div>
       </AdminLayout>
     );
@@ -129,7 +129,8 @@ function DashboardPage() {
               type="checkbox"
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+              className="w-4 h-4 rounded border-gray-300"
+              style={{ accentColor: '#1f6b7a' }}
             />
             <span className="text-gray-600 font-medium">Автообновление</span>
           </label>
@@ -145,8 +146,8 @@ function DashboardPage() {
           <div className="grid grid-cols-4 gap-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <ShoppingCart size={20} className="text-blue-600" />
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#e0f2f4' }}>
+                  <ShoppingCart size={20} style={{ color: '#1f6b7a' }} />
                 </div>
               </div>
               <p className="text-3xl font-bold text-gray-900 mb-1">{stats.total_orders}</p>
@@ -195,14 +196,17 @@ function DashboardPage() {
         {stats && stats.top_products.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
-              <TrendingUp size={20} className="text-blue-600" />
+              <TrendingUp size={20} style={{ color: '#1f6b7a' }} />
               Топ товаров
             </h2>
             <div className="space-y-3">
               {stats.top_products.slice(0, 5).map((product, index) => (
                 <div key={index} className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3 flex-1">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm" style={{
+                      backgroundColor: '#e0f2f4',
+                      color: '#1f6b7a'
+                    }}>
                       {index + 1}
                     </div>
                     <div>
@@ -225,7 +229,7 @@ function DashboardPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <FileText size={20} className="text-blue-600" />
+              <FileText size={20} style={{ color: '#1f6b7a' }} />
               Последние заказы
             </h2>
           </div>

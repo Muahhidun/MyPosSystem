@@ -1,7 +1,7 @@
 // Service Worker для PWA
 // Поддержка offline режима с IndexedDB и Background Sync
 
-const CACHE_NAME = 'mypos-v2'; // Increased version for offline support
+const CACHE_NAME = 'mypos-v3'; // Updated to force refresh after CP866 print fix
 const urlsToCache = [
   '/',
   '/pos',
@@ -14,7 +14,7 @@ const urlsToCache = [
 
 // Установка Service Worker
 self.addEventListener('install', (event) => {
-  console.log('[SW] Install - v2 with offline support');
+  console.log('[SW] Install - v3 with CP866 print fix');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {

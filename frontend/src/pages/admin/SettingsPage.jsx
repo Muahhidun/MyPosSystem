@@ -212,7 +212,7 @@ function SettingsPage() {
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500 mt-1.5">
-                  IP адрес принтера для чеков (80мм, WiFi)
+                  IP адрес или <span className="font-mono bg-gray-100 px-1 rounded">rawbt</span> для Android + USB
                 </p>
               </div>
 
@@ -241,7 +241,7 @@ function SettingsPage() {
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500 mt-1.5">
-                  IP адрес принтера для кухонных бегунков (58мм, этикетки)
+                  IP адрес или <span className="font-mono bg-gray-100 px-1 rounded">rawbt</span> для Android + USB
                 </p>
               </div>
             </div>

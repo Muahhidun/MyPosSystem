@@ -17,15 +17,16 @@
 - Админка (товары, техкарты, ингредиенты, модификаторы)
 - Offline режим (IndexedDB + Service Worker)
 - WebSocket для Kitchen Display
+- **Печать через RawBT** — Android + USB принтер (см. секцию 8)
 
 ### Что НЕ работает / отложено
 - USB печать на Windows (не удалось настроить, отложено)
-- Dogfooding на реальной точке (планируется с WiFi принтером)
+- WiFi печать на XPrinter (настройки показывают "Unknown", отложено)
 
 ### Текущие задачи
-1. **Настроить WiFi печать** — Android планшет + XPrinter
-2. **Провести dogfooding** — хотя бы 1 день на WeДrink
-3. **Редизайн UI** — современный интерфейс в стиле macOS (glass morphism)
+1. **Провести dogfooding** — хотя бы 1 день на WeДrink (печать готова!)
+2. **Редизайн UI** — современный интерфейс в стиле macOS (glass morphism)
+3. **Проверить кириллицу** — UTF-8 для RawBT уже настроен, нужно протестировать
 
 ---
 
@@ -33,7 +34,8 @@
 
 ### Phase 0: Стабилизация ← МЫ ЗДЕСЬ
 ```
-□ Настроить WiFi печать (Android + XPrinter)
+✅ Настроить печать (RawBT + USB вместо WiFi)
+✅ Добавить печать бегунков (каждый напиток отдельно)
 □ Провести dogfooding на WeДrink (1+ день)
 □ Собрать фидбек от кассира
 □ Исправить критические баги
@@ -413,6 +415,75 @@ Ping/pong keep-alive уже реализован в sw.js
 1. Проверь DevTools → Application → IndexedDB
 2. Проверь Service Worker registration
 3. Кликни "X в очереди" для ручной синхронизации
+
+---
+
+## 8. ПЕЧАТЬ ЧЕРЕЗ RAWBT (ANDROID + USB)
+
+### Оборудование
+- **Планшет:** Android (любой)
+- **Принтер:** XPrinter A160M (80mm, USB)
+- **Приложение:** RawBT (из Google Play)
+
+### Как работает
+```
+MyPOS (PWA) → rawbt:base64,<data> → RawBT App → USB → Принтер
+```
+
+### Настройка
+1. Установить RawBT из Google Play
+2. Подключить принтер по USB к планшету
+3. В RawBT: выбрать принтер USB
+4. **ВАЖНО:** Установить MyPOS как PWA (Add to Home Screen)
+5. В настройках MyPOS: IP принтера = `rawbt`
+
+### Файлы печати
+```
+frontend/src/utils/printerESCPOS.js  — базовый класс ESC/POS
+frontend/src/utils/receiptPrinter.js — чеки и бегунки
+frontend/src/utils/labelPrinter.js   — этикетки (для другого принтера)
+```
+
+### Кодировка
+- **CP866** для всех методов печати (принтер XPrinter не поддерживает UTF-8)
+- Команды: `INTL_CHARSET_RUSSIA` + `CHARSET_CP866`
+
+Логика в `printerESCPOS.js`:
+```javascript
+textToBytes(text) {
+  return this.textToBytesCP866(text);  // CP866 для всех
+}
+```
+
+### Что печатается
+1. **Чек** — полный чек с итогом (printReceipt)
+2. **Бегунки** — каждый напиток отдельно с обрезкой (printRunners)
+3. **Чек + Бегунки** — всё вместе в одном вызове (printReceiptWithRunners)
+
+**ВАЖНО:** Для RawBT используй `printReceiptWithRunners` — иначе напечатается только последний вызов!
+
+Пример бегунка:
+```
+      #123
+  ----------------
+   Матча Латте
+     Большой
+
+      1 / 2
+      14:35
+
+[ОБРЕЗКА]
+```
+
+### Если кириллица не работает
+1. Проверить что используется CP866 (не UTF-8)
+2. Проверить команды `INTL_CHARSET_RUSSIA` + `CHARSET_CP866` в начале печати
+3. Убедиться что сайт установлен как PWA
+4. Проверить что RawBT обновлён до последней версии
+
+### Если печатаются только бегунки (без чека)
+- Использовать `printReceiptWithRunners()` вместо двух отдельных вызовов
+- RawBT обрабатывает только один `window.location.href` за раз
 
 ---
 

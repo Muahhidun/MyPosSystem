@@ -189,19 +189,13 @@ function POSPage() {
       // Печать чека и этикетки через ESC/POS
       if (settings?.receipt_printer_ip || settings?.label_printer_ip) {
         try {
-          // Печать чека
+          // Печать чека + бегунков (один вызов для RawBT)
           if (settings.receipt_printer_ip) {
             const receiptPrinter = new ReceiptPrinter(settings.receipt_printer_ip);
-            await receiptPrinter.printReceipt(orderForPrint, {
+            await receiptPrinter.printReceiptWithRunners(orderForPrint, {
               businessName: settings.business_name,
               phone: settings.phone
             });
-
-            // Печать бегунков (каждый напиток отдельно с обрезкой)
-            await receiptPrinter.printRunners(orderForPrint, {
-              businessName: settings.business_name
-            });
-
             toast.success('Чек и бегунки отправлены на печать!');
           }
 

@@ -52,11 +52,14 @@ function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuTogg
       <td className="px-6 py-3">
         <button
           onClick={() => onToggleShowInPos(product)}
-          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
-            product.show_in_pos
-              ? 'bg-green-100 text-green-700 hover:bg-green-200'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
+          style={product.show_in_pos ? {
+            backgroundColor: '#e0f2f4',
+            color: '#1f6b7a'
+          } : {
+            backgroundColor: '#f3f4f6',
+            color: '#6b7280'
+          }}
+          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-colors"
         >
           {product.show_in_pos ? 'Скрыть' : 'Показывать'}
         </button>
@@ -65,7 +68,10 @@ function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuTogg
         <div className="actions-menu-container">
           <button
             onClick={() => onMenuToggle(product.id)}
-            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+            className="p-1.5 text-gray-400 hover:bg-gray-100 rounded transition-colors"
+            style={{ '--hover-color': '#1f6b7a' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#1f6b7a'}
+            onMouseLeave={(e) => e.currentTarget.style.color = ''}
           >
             <MoreHorizontal size={18} />
           </button>
@@ -75,19 +81,25 @@ function SortableProductRow({ product, isNearBottom, showActionsMenu, onMenuTogg
             }`}>
             <button
               onClick={() => { onEdit(product); onMenuToggle(null); }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 flex items-center gap-2 transition-colors"
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e0f2f4'; e.currentTarget.style.color = '#1f6b7a'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = '#374151'; }}
             >
               <Edit2 size={14} /> Изменить
             </button>
             <button
               onClick={() => { onConfigureVariants(product); onMenuToggle(null); }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 flex items-center gap-2 transition-colors"
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e0f2f4'; e.currentTarget.style.color = '#1f6b7a'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = '#374151'; }}
             >
               <Ruler size={14} /> Размеры
             </button>
             <button
               onClick={() => { onConfigureModifiers(product); onMenuToggle(null); }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 flex items-center gap-2 transition-colors"
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e0f2f4'; e.currentTarget.style.color = '#1f6b7a'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = '#374151'; }}
             >
               <Layers size={14} /> Модификации
             </button>
@@ -319,7 +331,7 @@ function ProductsPage() {
     return (
       <AdminLayout title="Товары">
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: '#1f6b7a' }}></div>
         </div>
       </AdminLayout>
     );
@@ -368,7 +380,10 @@ function ProductsPage() {
                       step="0.01"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all"
+                      style={{ '--focus-ring-color': '#1f6b7a' }}
+                      onFocus={(e) => e.currentTarget.style.boxShadow = '0 0 0 2px #e0f2f4'}
+                      onBlur={(e) => e.currentTarget.style.boxShadow = ''}
                       placeholder="450"
                       required
                     />
@@ -381,7 +396,9 @@ function ProductsPage() {
                     <select
                       value={formData.category_id || ''}
                       onChange={(e) => setFormData({ ...formData, category_id: e.target.value || null })}
-                      className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent transition-all"
+                      onFocus={(e) => e.currentTarget.style.boxShadow = '0 0 0 2px #e0f2f4'}
+                      onBlur={(e) => e.currentTarget.style.boxShadow = ''}
                     >
                       <option value="">Без категории</option>
                       {categories.map(cat => (
@@ -403,7 +420,8 @@ function ProductsPage() {
                         type="checkbox"
                         checked={formData.is_available}
                         onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        className="w-4 h-4 rounded border-gray-300"
+                        style={{ accentColor: '#1f6b7a' }}
                       />
                       <span className="text-sm text-gray-700">Доступен для продажи</span>
                     </label>
@@ -413,7 +431,8 @@ function ProductsPage() {
                         type="checkbox"
                         checked={formData.show_in_pos}
                         onChange={(e) => setFormData({ ...formData, show_in_pos: e.target.checked })}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        className="w-4 h-4 rounded border-gray-300"
+                        style={{ accentColor: '#1f6b7a' }}
                       />
                       <span className="text-sm text-gray-700">Показывать на кассе</span>
                     </label>

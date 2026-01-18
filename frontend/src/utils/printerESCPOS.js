@@ -1,10 +1,13 @@
 // ESC/POS команды для термопринтеров Xprinter
-// Поддержка: XP-T80Q (чеки) и XP-365B (этикетки)
+// Поддержка: XP-T80Q (чеки), XP-365B (этикетки), XP-A160M
+// Методы печати: Network (TCP), RawBT (Android)
 
 class ESCPOSPrinter {
   constructor(printerIP) {
     this.printerIP = printerIP;
     this.port = 9100; // Стандартный порт для принтеров ESC/POS
+    // Если IP = 'rawbt' — использовать RawBT приложение на Android
+    this.useRawBT = printerIP?.toLowerCase() === 'rawbt';
   }
 
   // ESC/POS команды
@@ -92,6 +95,40 @@ class ESCPOSPrinter {
 
   // Отправка команды на принтер
   async print(commandArray) {
+    const data = this.buildCommand(commandArray);
+
+    // Если используем RawBT (Android приложение)
+    if (this.useRawBT) {
+      return this.printViaRawBT(data);
+    }
+
+    // Иначе пробуем сетевую печать
+    return this.printViaNetwork(data);
+  }
+
+  // Печать через RawBT (Android)
+  // RawBT принимает ESC/POS данные через URL схему rawbt:
+  async printViaRawBT(data) {
+    try {
+      // Конвертируем Uint8Array в base64
+      const base64 = this.uint8ArrayToBase64(data);
+
+      // Открываем URL для RawBT
+      // Формат: rawbt:base64,<data>
+      const rawbtUrl = `rawbt:base64,${base64}`;
+
+      // Открываем URL — это запустит RawBT и отправит данные на принтер
+      window.location.href = rawbtUrl;
+
+      return { success: true, method: 'rawbt' };
+    } catch (error) {
+      console.error('Ошибка печати через RawBT:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Печать через сеть (TCP порт 9100)
+  async printViaNetwork(data) {
     try {
       const url = `http://${this.printerIP}:${this.port}/`;
 
@@ -100,15 +137,24 @@ class ESCPOSPrinter {
         headers: {
           'Content-Type': 'application/octet-stream',
         },
-        body: this.buildCommand(commandArray),
+        body: data,
         mode: 'no-cors', // Для локальных принтеров
       });
 
-      return { success: true };
+      return { success: true, method: 'network' };
     } catch (error) {
-      console.error('Ошибка печати:', error);
+      console.error('Ошибка сетевой печати:', error);
       return { success: false, error: error.message };
     }
+  }
+
+  // Конвертация Uint8Array в Base64
+  uint8ArrayToBase64(uint8Array) {
+    let binary = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      binary += String.fromCharCode(uint8Array[i]);
+    }
+    return btoa(binary);
   }
 
   // Печать текста

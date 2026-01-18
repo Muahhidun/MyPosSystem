@@ -51,13 +51,8 @@ class ESCPOSPrinter {
   };
 
   // Конвертация строки в байты
-  // Для RawBT используем UTF-8, для сетевой печати — CP866
+  // Принтер XPrinter не поддерживает UTF-8, используем CP866 для всех методов
   textToBytes(text) {
-    // Если RawBT — используем UTF-8
-    if (this.useRawBT) {
-      return this.textToBytesUTF8(text);
-    }
-    // Иначе — CP866 для прямой печати
     return this.textToBytesCP866(text);
   }
 

@@ -25,14 +25,9 @@ class ReceiptPrinter extends ESCPOSPrinter {
     // Инициализация
     commands.push(ESCPOSPrinter.commands.INIT);
 
-    // Для RawBT используем UTF-8, не нужны команды кодировки
-    // Для сетевой печати — CP866
-    if (!this.useRawBT) {
-      // Установка международного набора символов (Россия)
-      commands.push(ESCPOSPrinter.commands.INTL_CHARSET_RUSSIA);
-      // Установка кодовой страницы для кириллицы
-      commands.push(ESCPOSPrinter.commands.CHARSET_CP866);
-    }
+    // Установка кодировки CP866 для кириллицы (для всех методов печати)
+    commands.push(ESCPOSPrinter.commands.INTL_CHARSET_RUSSIA);
+    commands.push(ESCPOSPrinter.commands.CHARSET_CP866);
 
     // Заголовок - название заведения
     if (settings.businessName) {
@@ -142,6 +137,29 @@ class ReceiptPrinter extends ESCPOSPrinter {
   }
 
   /**
+   * Печать чека + бегунков вместе (один вызов для RawBT)
+   * @param {Object} order - Данные заказа
+   * @param {Object} settings - Настройки
+   */
+  async printReceiptWithRunners(order, settings = {}) {
+    const allCommands = [];
+
+    // Сначала чек
+    const receiptCommands = this.buildReceiptCommands(order, settings);
+    allCommands.push(...receiptCommands);
+
+    // Потом бегунки
+    for (const item of order.items) {
+      for (let i = 0; i < item.quantity; i++) {
+        const runnerCommands = this.buildRunnerCommands(order, item, settings, i + 1, item.quantity);
+        allCommands.push(...runnerCommands);
+      }
+    }
+
+    return await this.print(allCommands);
+  }
+
+  /**
    * Печать бегунков (отдельный билет на каждый напиток с обрезкой)
    * @param {Object} order - Данные заказа
    * @param {Object} settings - Настройки
@@ -175,11 +193,9 @@ class ReceiptPrinter extends ESCPOSPrinter {
     // Инициализация
     commands.push(ESCPOSPrinter.commands.INIT);
 
-    // Для RawBT используем UTF-8
-    if (!this.useRawBT) {
-      commands.push(ESCPOSPrinter.commands.INTL_CHARSET_RUSSIA);
-      commands.push(ESCPOSPrinter.commands.CHARSET_CP866);
-    }
+    // Установка кодировки CP866 для кириллицы
+    commands.push(ESCPOSPrinter.commands.INTL_CHARSET_RUSSIA);
+    commands.push(ESCPOSPrinter.commands.CHARSET_CP866);
 
     // Номер заказа крупно
     commands.push(

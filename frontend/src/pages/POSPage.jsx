@@ -196,7 +196,13 @@ function POSPage() {
               businessName: settings.business_name,
               phone: settings.phone
             });
-            toast.success('Чек отправлен на печать!');
+
+            // Печать бегунков (каждый напиток отдельно с обрезкой)
+            await receiptPrinter.printRunners(orderForPrint, {
+              businessName: settings.business_name
+            });
+
+            toast.success('Чек и бегунки отправлены на печать!');
           }
 
           // Печать этикетки

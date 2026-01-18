@@ -50,41 +50,46 @@ class ESCPOSPrinter {
     BARCODE_CODE39: [0x1D, 0x6B, 0x04], // CODE39
   };
 
-  // Конвертация строки в байты (CP866 для кириллицы)
+  // Конвертация строки в байты
+  // Для RawBT используем UTF-8, для сетевой печати — CP866
   textToBytes(text) {
-    // Таблица перекодировки кириллицы UTF-8 → CP866 (DOS кириллица)
-    // Это стандартная кодировка для термопринтеров в России
+    // Если RawBT — используем UTF-8
+    if (this.useRawBT) {
+      return this.textToBytesUTF8(text);
+    }
+    // Иначе — CP866 для прямой печати
+    return this.textToBytesCP866(text);
+  }
+
+  // UTF-8 кодировка (для RawBT)
+  textToBytesUTF8(text) {
+    const encoder = new TextEncoder();
+    return Array.from(encoder.encode(text));
+  }
+
+  // CP866 кодировка (для прямой сетевой печати)
+  textToBytesCP866(text) {
     const cp866Map = {
-      // Заглавные буквы А-П (0x80-0x8F)
       'А': 0x80, 'Б': 0x81, 'В': 0x82, 'Г': 0x83, 'Д': 0x84, 'Е': 0x85, 'Ж': 0x86, 'З': 0x87,
       'И': 0x88, 'Й': 0x89, 'К': 0x8A, 'Л': 0x8B, 'М': 0x8C, 'Н': 0x8D, 'О': 0x8E, 'П': 0x8F,
-      // Заглавные буквы Р-Я (0x90-0x9F)
       'Р': 0x90, 'С': 0x91, 'Т': 0x92, 'У': 0x93, 'Ф': 0x94, 'Х': 0x95, 'Ц': 0x96, 'Ч': 0x97,
       'Ш': 0x98, 'Щ': 0x99, 'Ъ': 0x9A, 'Ы': 0x9B, 'Ь': 0x9C, 'Э': 0x9D, 'Ю': 0x9E, 'Я': 0x9F,
-      // Строчные буквы а-п (0xA0-0xAF)
       'а': 0xA0, 'б': 0xA1, 'в': 0xA2, 'г': 0xA3, 'д': 0xA4, 'е': 0xA5, 'ж': 0xA6, 'з': 0xA7,
       'и': 0xA8, 'й': 0xA9, 'к': 0xAA, 'л': 0xAB, 'м': 0xAC, 'н': 0xAD, 'о': 0xAE, 'п': 0xAF,
-      // Строчные буквы р-я (0xE0-0xEF)
       'р': 0xE0, 'с': 0xE1, 'т': 0xE2, 'у': 0xE3, 'ф': 0xE4, 'х': 0xE5, 'ц': 0xE6, 'ч': 0xE7,
       'ш': 0xE8, 'щ': 0xE9, 'ъ': 0xEA, 'ы': 0xEB, 'ь': 0xEC, 'э': 0xED, 'ю': 0xEE, 'я': 0xEF,
-      // Ё и ё
       'Ё': 0xF0, 'ё': 0xF1
     };
 
     const bytes = [];
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
-
-      // Если кириллица - используем CP866
       if (cp866Map[char]) {
         bytes.push(cp866Map[char]);
-      }
-      // Иначе - стандартный ASCII (латиница, цифры, символы)
-      else {
+      } else {
         bytes.push(char.charCodeAt(0));
       }
     }
-
     return bytes;
   }
 

@@ -445,22 +445,22 @@ frontend/src/utils/labelPrinter.js   — этикетки (для другого
 ```
 
 ### Кодировка
-- **RawBT:** UTF-8 (через TextEncoder)
-- **Сетевая печать:** CP866 (кириллица DOS)
+- **CP866** для всех методов печати (принтер XPrinter не поддерживает UTF-8)
+- Команды: `INTL_CHARSET_RUSSIA` + `CHARSET_CP866`
 
 Логика в `printerESCPOS.js`:
 ```javascript
 textToBytes(text) {
-  if (this.useRawBT) {
-    return this.textToBytesUTF8(text);  // UTF-8
-  }
-  return this.textToBytesCP866(text);   // CP866
+  return this.textToBytesCP866(text);  // CP866 для всех
 }
 ```
 
 ### Что печатается
 1. **Чек** — полный чек с итогом (printReceipt)
 2. **Бегунки** — каждый напиток отдельно с обрезкой (printRunners)
+3. **Чек + Бегунки** — всё вместе в одном вызове (printReceiptWithRunners)
+
+**ВАЖНО:** Для RawBT используй `printReceiptWithRunners` — иначе напечатается только последний вызов!
 
 Пример бегунка:
 ```
@@ -476,10 +476,14 @@ textToBytes(text) {
 ```
 
 ### Если кириллица не работает
-1. Проверить что IP = `rawbt` (не IP адрес)
-2. Убедиться что сайт установлен как PWA
-3. В коде не должно быть команд CP866 для RawBT
+1. Проверить что используется CP866 (не UTF-8)
+2. Проверить команды `INTL_CHARSET_RUSSIA` + `CHARSET_CP866` в начале печати
+3. Убедиться что сайт установлен как PWA
 4. Проверить что RawBT обновлён до последней версии
+
+### Если печатаются только бегунки (без чека)
+- Использовать `printReceiptWithRunners()` вместо двух отдельных вызовов
+- RawBT обрабатывает только один `window.location.href` за раз
 
 ---
 
